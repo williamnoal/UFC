@@ -1,330 +1,488 @@
-import React, { useState, useEffect } from 'react';
-import { DndProvider, useDrag, useDrop } from 'react-dnd';
-import { HTML5Backend } from 'react-dnd-html5-backend';
-import { TouchBackend } from 'react-dnd-touch-backend';
-import { MessageSquare, FileText, CheckSquare, Book, Database, Edit, MessageCircle, BarChart2, RefreshCw, Trophy, Info, X } from 'lucide-react';
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Moodle Match: Desafio Pedagógico</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
 
-// --- DATA SOURCE BASED ON PDF ---
-const gameData = [
-  {
-    id: 1,
-    description: "Preciso que os alunos construam um texto único colaborativamente.",
-    hint: "A essência desta atividade é ser um documento colaborativo.",
-    correctType: "Wiki",
-    feedback: "Exato! A Wiki é ideal para construção coletiva de textos.",
-    color: "bg-blue-100 border-blue-500"
-  },
-  {
-    id: 2,
-    description: "Quero avaliar submissões individuais de arquivos ou textos online com feedback personalizado.",
-    hint: "Não permite colaboração direta entre estudantes.",
-    correctType: "Tarefa",
-    feedback: "Perfeito! A Tarefa é focada na entrega individual e feedback do professor.",
-    color: "bg-yellow-100 border-yellow-500"
-  },
-  {
-    id: 3,
-    description: "Preciso de uma avaliação automática para questões objetivas.",
-    hint: "A configuração é feita em etapas e permite feedback automático.",
-    correctType: "Questionário",
-    feedback: "Isso! Questionários são ótimos para correção automática.",
-    color: "bg-green-100 border-green-500"
-  },
-  {
-    id: 4,
-    description: "Quero criar um dicionário de conceitos construído pela turma.",
-    hint: "Permite compartilhamento de termos e verbetes.",
-    correctType: "Glossário",
-    feedback: "Correto! O Glossário permite construir uma base de conhecimento de termos juntos.",
-    color: "bg-purple-100 border-purple-500"
-  },
-  {
-    id: 5,
-    description: "Poderosa ferramenta para debates e discussões assíncronas.",
-    hint: "Os estudantes podem discutir um tema e o professor mediar.",
-    correctType: "Fórum",
-    feedback: "Excelente! O Fórum é a principal ferramenta de comunicação assíncrona.",
-    color: "bg-indigo-100 border-indigo-500"
-  },
-  {
-    id: 6,
-    description: "Compartilhamento de diversos tipos de dados (imagens, links, arquivos) pelos alunos.",
-    hint: "Funciona como um repositório ou galeria colaborativa.",
-    correctType: "Base de Dados",
-    feedback: "Muito bem! A Base de Dados é flexível para coletar diversos tipos de arquivos.",
-    color: "bg-red-100 border-red-500"
-  },
-  {
-    id: 7,
-    description: "Comunicação síncrona (tempo real) para tirar dúvidas rápidas.",
-    hint: "Não permite nota, o feedback é feito via conversa.",
-    correctType: "Chat",
-    feedback: "Certo! O Chat é ideal para interações imediatas.",
-    color: "bg-pink-100 border-pink-500"
-  },
-  {
-    id: 8,
-    description: "Coleta de dados para diagnóstico sem atribuir nota.",
-    hint: "Não divulga informação, apenas coleta dados para análise.",
-    correctType: "Pesquisa",
-    feedback: "Isso mesmo! A Pesquisa é usada para levantamento de dados e opinião.",
-    color: "bg-orange-100 border-orange-500"
-  }
-];
-
-const activityTypes = [
-  { name: "Fórum", icon: <MessageSquare size={24} />, color: "bg-indigo-500" },
-  { name: "Tarefa", icon: <FileText size={24} />, color: "bg-yellow-500" },
-  { name: "Questionário", icon: <CheckSquare size={24} />, color: "bg-green-600" },
-  { name: "Glossário", icon: <Book size={24} />, color: "bg-purple-500" },
-  { name: "Base de Dados", icon: <Database size={24} />, color: "bg-red-500" },
-  { name: "Wiki", icon: <Edit size={24} />, color: "bg-blue-500" },
-  { name: "Chat", icon: <MessageCircle size={24} />, color: "bg-pink-500" },
-  { name: "Pesquisa", icon: <BarChart2 size={24} />, color: "bg-orange-500" },
-];
-
-// --- COMPONENTS ---
-
-const DraggableItem = ({ name, icon, color }) => {
-  const [{ isDragging }, drag] = useDrag(() => ({
-    type: 'ACTIVITY',
-    item: { name },
-    collect: (monitor) => ({
-      isDragging: !!monitor.isDragging(),
-    }),
-  }));
-
-  return (
-    <div
-      ref={drag}
-      className={`flex flex-col items-center justify-center p-3 m-2 rounded-xl shadow-md cursor-grab transition-transform transform hover:scale-105 active:cursor-grabbing ${color} text-white w-24 h-24 sm:w-28 sm:h-28 opacity-${isDragging ? '50' : '100'}`}
-    >
-      <div className="mb-2 drop-shadow-md">{icon}</div>
-      <span className="text-xs sm:text-sm font-bold text-center leading-tight">{name}</span>
-    </div>
-  );
-};
-
-const DropZone = ({ onDrop, currentCard, feedbackState }) => {
-  const [{ isOver }, drop] = useDrop(() => ({
-    accept: 'ACTIVITY',
-    drop: (item) => onDrop(item.name),
-    collect: (monitor) => ({
-      isOver: !!monitor.isOver(),
-    }),
-  }));
-
-  let borderColor = isOver ? 'border-blue-400 bg-blue-50' : 'border-dashed border-gray-300 bg-gray-50';
-  let content = <span className="text-gray-400 text-lg font-medium animate-pulse">Arraste a atividade correta aqui</span>;
-
-  if (feedbackState === 'correct') {
-    borderColor = 'border-green-500 bg-green-50 scale-105';
-    content = (
-      <div className="flex flex-col items-center text-green-600 animate-bounce">
-        <CheckSquare size={48} />
-        <span className="text-xl font-bold mt-2">Correto!</span>
-      </div>
-    );
-  } else if (feedbackState === 'incorrect') {
-    borderColor = 'border-red-500 bg-red-50 shake';
-    content = (
-      <div className="flex flex-col items-center text-red-600">
-        <X size={48} />
-        <span className="text-xl font-bold mt-2">Tente Novamente</span>
-      </div>
-    );
-  }
-
-  return (
-    <div
-      ref={drop}
-      className={`w-full h-48 sm:h-64 rounded-2xl border-4 flex items-center justify-center transition-all duration-300 ${borderColor}`}
-    >
-      {content}
-    </div>
-  );
-};
-
-// --- MAIN GAME COMPONENT ---
-
-export default function MoodleMatchGame() {
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [score, setScore] = useState(0);
-  const [feedbackState, setFeedbackState] = useState('idle'); // idle, correct, incorrect
-  const [feedbackMessage, setFeedbackMessage] = useState('');
-  const [showHint, setShowHint] = useState(false);
-  const [isGameOver, setIsGameOver] = useState(false);
-  const [shuffledCards, setShuffledCards] = useState([]);
-  
-  // Detect touch device for backend selection
-  const isTouchDevice = () => {
-    return (('ontouchstart' in window) ||
-      (navigator.maxTouchPoints > 0) ||
-      (navigator.msMaxTouchPoints > 0));
-  };
-
-  const backend = isTouchDevice() ? TouchBackend : HTML5Backend;
-
-  useEffect(() => {
-    restartGame();
-  }, []);
-
-  const restartGame = () => {
-    const shuffled = [...gameData].sort(() => Math.random() - 0.5);
-    setShuffledCards(shuffled);
-    setCurrentIndex(0);
-    setScore(0);
-    setFeedbackState('idle');
-    setFeedbackMessage('');
-    setShowHint(false);
-    setIsGameOver(false);
-  };
-
-  const handleDrop = (droppedName) => {
-    if (feedbackState === 'correct') return;
-
-    const currentCard = shuffledCards[currentIndex];
-
-    if (droppedName === currentCard.correctType) {
-      setFeedbackState('correct');
-      setFeedbackMessage(currentCard.feedback);
-      setScore(prev => prev + 10);
-      
-      setTimeout(() => {
-        if (currentIndex < shuffledCards.length - 1) {
-          setCurrentIndex(prev => prev + 1);
-          setFeedbackState('idle');
-          setFeedbackMessage('');
-          setShowHint(false);
-        } else {
-          setIsGameOver(true);
+    <style>
+        /* Animações Personalizadas */
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+            20%, 40%, 60%, 80% { transform: translateX(5px); }
         }
-      }, 2000);
-    } else {
-      setFeedbackState('incorrect');
-      setFeedbackMessage("Ops! Essa não é a atividade ideal para este objetivo. Tente outra!");
-      setScore(prev => Math.max(0, prev - 2));
-      setTimeout(() => setFeedbackState('idle'), 1500);
-    }
-  };
+        .shake { animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both; }
 
-  if (shuffledCards.length === 0) return null;
+        @keyframes bounce-in {
+            0% { transform: scale(0.8); opacity: 0; }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .bounce-in { animation: bounce-in 0.5s ease-out; }
 
-  const currentCard = shuffledCards[currentIndex];
+        @keyframes fade-in {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .fade-in { animation: fade-in 0.4s ease-out forwards; }
 
-  return (
-    <DndProvider backend={backend} options={{ enableMouseEvents: true }}>
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-white font-sans text-gray-800 p-4 sm:p-6 flex flex-col items-center">
-        
-        {/* Header - UFC Identity */}
-        <header className="w-full max-w-4xl flex justify-between items-center mb-6 bg-white p-4 rounded-xl shadow-sm border-l-8 border-yellow-400">
-          <div className="flex flex-col">
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-blue-900 tracking-tight">MOODLE MATCH</h1>
-            <p className="text-xs sm:text-sm text-gray-500 uppercase tracking-widest">Atividades e Objetivos Educacionais</p>
-          </div>
-          <div className="flex items-center space-x-4">
-            <div className="text-right hidden sm:block">
-              <span className="block text-xs text-gray-400">PONTUAÇÃO</span>
-              <span className="text-2xl font-bold text-blue-600">{score}</span>
-            </div>
-            <div className="bg-blue-100 p-2 rounded-full">
-              <Trophy className="text-blue-600" size={24} />
-            </div>
-          </div>
-        </header>
+        /* Estilos para Drag and Drop Móvel */
+        .dragging {
+            opacity: 0.5;
+            position: fixed; /* Importante para o touchmove seguir o dedo */
+            pointer-events: none; /* Deixa o evento passar para o elemento de baixo (dropzone) */
+            z-index: 1000;
+            width: 100px; /* Tamanho fixo durante o arraste */
+            height: 100px;
+        }
 
-        {isGameOver ? (
-          <div className="w-full max-w-2xl bg-white rounded-3xl shadow-xl p-8 text-center animate-fade-in-up">
-            <div className="w-24 h-24 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-6">
-              <Trophy className="text-yellow-500 w-12 h-12" />
-            </div>
-            <h2 className="text-3xl font-bold text-gray-800 mb-2">Parabéns!</h2>
-            <p className="text-gray-600 mb-6">Você completou o ciclo de formação continuada do jogo.</p>
-            <div className="text-5xl font-bold text-blue-600 mb-8">{score} <span className="text-xl text-gray-400 font-normal">pontos</span></div>
-            <button 
-              onClick={restartGame}
-              className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full font-bold shadow-lg transition-transform transform hover:scale-105 flex items-center mx-auto"
-            >
-              <RefreshCw className="mr-2" size={20} /> Jogar Novamente
-            </button>
-          </div>
-        ) : (
-          <div className="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-12 gap-6">
+        .drop-active {
+            border-color: #60a5fa !important; /* blue-400 */
+            background-color: #eff6ff !important; /* blue-50 */
+            transform: scale(1.02);
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-white min-h-screen font-sans text-gray-800 flex flex-col items-center p-4 selection:bg-blue-200">
+
+    <!-- Header -->
+    <header class="w-full max-w-5xl flex justify-between items-center mb-6 bg-white p-4 rounded-xl shadow-sm border-l-8 border-yellow-400 fade-in">
+        <div class="flex items-center gap-4">
+            <!-- Logo Esquerda (h-50 w-50 proproção 1:1) -->
+            <!-- Substitua o src pelo link da sua imagem -->
+            <img src="1.jpg" alt="Logo Esquerda" class="h-20 w-20 object-contain rounded-md border border-gray-100">
             
-            {/* Left Column: Challenge Card */}
-            <div className="lg:col-span-7 flex flex-col space-y-4">
-              
-              {/* Progress Bar */}
-              <div className="w-full bg-gray-200 rounded-full h-2.5 mb-2">
-                <div 
-                  className="bg-blue-600 h-2.5 rounded-full transition-all duration-500" 
-                  style={{ width: `${((currentIndex) / shuffledCards.length) * 100}%` }}
-                ></div>
-              </div>
+            <div class="flex flex-col">
+                <h1 class="text-2xl sm:text-3xl font-extrabold text-blue-900 tracking-tight">MOODLE MATCH</h1>
+                <p class="text-xs sm:text-sm text-gray-500 uppercase tracking-widest">Atividades e Objetivos Educacionais</p>
+            </div>
+        </div>
 
-              {/* Card */}
-              <div className={`relative bg-white rounded-3xl shadow-xl border-2 p-6 sm:p-10 flex flex-col items-center text-center justify-between min-h-[300px] transition-colors duration-300 ${feedbackState === 'correct' ? 'border-green-400 bg-green-50' : 'border-blue-100'}`}>
+        <div class="flex items-center space-x-4">
+            <div class="text-right hidden sm:block">
+                <span class="block text-xs text-gray-400">PONTUAÇÃO</span>
+                <span id="score-display" class="text-2xl font-bold text-blue-600">0</span>
+            </div>
+            <div class="bg-blue-100 p-2 rounded-full">
+                <i data-lucide="trophy" class="text-blue-600 w-6 h-6"></i>
+            </div>
+            
+            <!-- Logo Direita (h-25 w-50 proporção 1:2) -->
+            <!-- Substitua o src pelo link da sua imagem -->
+            <img src="2.png" alt="Logo Direita" class="h-10 w-20 object-contain rounded-md border border-gray-100">
+        </div>
+    </header>
+
+    <!-- Game Container -->
+    <main id="game-container" class="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-12 gap-6 relative">
+        
+        <!-- Coluna Esquerda: Cartão de Desafio -->
+        <div class="lg:col-span-7 flex flex-col space-y-4 fade-in" style="animation-delay: 0.1s;">
+            
+            <!-- Barra de Progresso -->
+            <div class="w-full bg-gray-200 rounded-full h-2.5 mb-2 overflow-hidden">
+                <div id="progress-bar" class="bg-blue-600 h-2.5 rounded-full transition-all duration-500" style="width: 0%"></div>
+            </div>
+
+            <!-- Cartão -->
+            <div id="card-container" class="relative bg-white rounded-3xl shadow-xl border-2 border-blue-100 p-6 sm:p-10 flex flex-col items-center text-center justify-between min-h-[350px] transition-colors duration-300">
                 
-                <div className="absolute top-4 right-4 text-xs font-bold text-gray-300">
-                  {currentIndex + 1} / {shuffledCards.length}
+                <div class="absolute top-4 right-4 text-xs font-bold text-gray-300">
+                    <span id="current-index">1</span> / <span id="total-cards">8</span>
                 </div>
 
-                <div className="mb-4">
-                   <h3 className="text-gray-400 text-sm font-bold uppercase tracking-wider mb-2">Objetivo Pedagógico</h3>
-                   <p className="text-xl sm:text-2xl font-bold text-gray-800 leading-relaxed">
-                     "{currentCard.description}"
+                <div class="mb-4 w-full">
+                   <h3 class="text-gray-400 text-sm font-bold uppercase tracking-wider mb-2">Objetivo Pedagógico</h3>
+                   <p id="card-description" class="text-xl sm:text-2xl font-bold text-gray-800 leading-relaxed min-h-[80px] flex items-center justify-center">
+                     Carregando...
                    </p>
                 </div>
 
-                <DropZone onDrop={handleDrop} currentCard={currentCard} feedbackState={feedbackState} />
+                <!-- Zona de Soltar (Drop Zone) -->
+                <div id="drop-zone" class="w-full h-48 sm:h-64 rounded-2xl border-4 border-dashed border-gray-300 bg-gray-50 flex items-center justify-center transition-all duration-300 relative overflow-hidden">
+                    <!-- Conteúdo Padrão -->
+                    <div id="drop-placeholder" class="text-center pointer-events-none">
+                        <span class="text-gray-400 text-lg font-medium animate-pulse block">Arraste a atividade aqui</span>
+                    </div>
+                    
+                    <!-- Conteúdo Sucesso (Escondido) -->
+                    <div id="drop-success" class="hidden flex-col items-center text-green-600 animate-bounce">
+                        <i data-lucide="check-square" class="w-12 h-12 mb-2"></i>
+                        <span class="text-xl font-bold">Correto!</span>
+                    </div>
 
-                {/* Feedback Text Area */}
-                <div className="h-16 mt-4 flex items-center justify-center w-full">
-                   {feedbackMessage ? (
-                     <p className={`text-center font-medium ${feedbackState === 'correct' ? 'text-green-700' : 'text-red-500'}`}>
-                       {feedbackMessage}
-                     </p>
-                   ) : (
-                     !showHint && (
-                        <button 
-                          onClick={() => { setShowHint(true); setScore(prev => Math.max(0, prev - 5)); }}
-                          className="text-sm text-blue-400 hover:text-blue-600 flex items-center transition-colors"
-                        >
-                          <Info size={16} className="mr-1" /> Precisa de uma dica? (-5 pts)
-                        </button>
-                     )
-                   )}
-                   {showHint && !feedbackMessage && (
-                     <p className="text-sm text-yellow-600 bg-yellow-50 px-3 py-1 rounded-lg border border-yellow-200 animate-fade-in">
-                       💡 Dica: {currentCard.hint}
-                     </p>
-                   )}
+                    <!-- Conteúdo Erro (Escondido) -->
+                    <div id="drop-error" class="hidden flex-col items-center text-red-600">
+                        <i data-lucide="x" class="w-12 h-12 mb-2"></i>
+                        <span class="text-xl font-bold">Tente Novamente</span>
+                    </div>
                 </div>
-              </div>
-            </div>
 
-            {/* Right Column: Draggable Items */}
-            <div className="lg:col-span-5 bg-white rounded-3xl shadow-lg border border-gray-100 p-4 sm:p-6">
-              <h3 className="text-center text-gray-500 font-bold mb-4 uppercase text-sm">Arraste a Atividade</h3>
-              <div className="flex flex-wrap justify-center content-start">
-                {activityTypes.map((activity) => (
-                  <DraggableItem 
-                    key={activity.name} 
-                    name={activity.name} 
-                    icon={activity.icon} 
-                    color={activity.color} 
-                  />
-                ))}
-              </div>
+                <!-- Área de Feedback e Dicas -->
+                <div class="h-16 mt-4 flex items-center justify-center w-full">
+                   <p id="feedback-text" class="text-center font-medium hidden"></p>
+                   
+                   <button id="hint-btn" class="text-sm text-blue-400 hover:text-blue-600 flex items-center transition-colors">
+                      <i data-lucide="info" class="w-4 h-4 mr-1"></i> Precisa de uma dica? (-5 pts)
+                   </button>
+                   
+                   <p id="hint-text" class="hidden text-sm text-yellow-600 bg-yellow-50 px-3 py-1 rounded-lg border border-yellow-200 fade-in"></p>
+                </div>
             </div>
+        </div>
 
-          </div>
-        )}
-        
-        <footer className="mt-8 text-center text-gray-400 text-xs">
-          Baseado no material: "Atividades no Moodle e Seus Objetivos Educacionais" - UFC/SMED
-        </footer>
-      </div>
-    </DndProvider>
-  );
-}
+        <!-- Coluna Direita: Itens Arrastáveis -->
+        <div class="lg:col-span-5 bg-white rounded-3xl shadow-lg border border-gray-100 p-4 sm:p-6 fade-in" style="animation-delay: 0.2s;">
+            <h3 class="text-center text-gray-500 font-bold mb-4 uppercase text-sm">Arraste a Atividade</h3>
+            <div id="draggable-container" class="flex flex-wrap justify-center content-start gap-2">
+                <!-- Os itens serão gerados via JS -->
+            </div>
+        </div>
+    </main>
+
+    <!-- Tela de Game Over (Escondida) -->
+    <div id="game-over" class="hidden fixed inset-0 bg-white/90 z-50 flex items-center justify-center p-4 fade-in">
+        <div class="w-full max-w-lg bg-white rounded-3xl shadow-2xl p-8 text-center border border-gray-200">
+            <div class="w-24 h-24 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-6 bounce-in">
+              <i data-lucide="trophy" class="text-yellow-500 w-12 h-12"></i>
+            </div>
+            <h2 class="text-3xl font-bold text-gray-800 mb-2">Parabéns!</h2>
+            <p class="text-gray-600 mb-6">Você completou o ciclo de formação continuada do jogo.</p>
+            <div class="text-5xl font-bold text-blue-600 mb-8"><span id="final-score">0</span> <span class="text-xl text-gray-400 font-normal">pontos</span></div>
+            <button onclick="initGame()" class="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full font-bold shadow-lg transition-transform transform hover:scale-105 flex items-center mx-auto">
+              <i data-lucide="refresh-cw" class="w-5 h-5 mr-2"></i> Jogar Novamente
+            </button>
+        </div>
+    </div>
+
+    <footer class="mt-8 text-center text-gray-400 text-xs pb-4">
+        Baseado no material: "Atividades no Moodle e Seus Objetivos Educacionais" - UFC/SMED
+    </footer>
+
+    <!-- Lógica do Jogo -->
+    <script>
+        // --- DADOS ---
+        const gameData = [
+            { id: 1, description: "Preciso que os alunos construam um texto único colaborativamente.", hint: "A essência desta atividade é ser um documento colaborativo.", correctType: "Wiki", feedback: "Exato! A Wiki é ideal para construção coletiva de textos." },
+            { id: 2, description: "Quero avaliar submissões individuais de arquivos ou textos online com feedback personalizado.", hint: "Não permite colaboração direta entre estudantes.", correctType: "Tarefa", feedback: "Perfeito! A Tarefa é focada na entrega individual." },
+            { id: 3, description: "Preciso de uma avaliação automática para questões objetivas.", hint: "A configuração é feita em etapas e permite feedback automático.", correctType: "Questionário", feedback: "Isso! Questionários são ótimos para correção automática." },
+            { id: 4, description: "Quero criar um dicionário de conceitos construído pela turma.", hint: "Permite compartilhamento de termos e verbetes.", correctType: "Glossário", feedback: "Correto! O Glossário constrói uma base de conhecimento." },
+            { id: 5, description: "Poderosa ferramenta para debates e discussões assíncronas.", hint: "Os estudantes podem discutir um tema e o professor mediar.", correctType: "Fórum", feedback: "Excelente! O Fórum é a principal ferramenta de comunicação." },
+            { id: 6, description: "Compartilhamento de diversos tipos de dados (imagens, links, arquivos) pelos alunos.", hint: "Funciona como um repositório ou galeria colaborativa.", correctType: "Base de Dados", feedback: "Muito bem! A Base de Dados é flexível." },
+            { id: 7, description: "Comunicação síncrona (tempo real) para tirar dúvidas rápidas.", hint: "Não permite nota, o feedback é feito via conversa.", correctType: "Chat", feedback: "Certo! O Chat é ideal para interações imediatas." },
+            { id: 8, description: "Coleta de dados para diagnóstico sem atribuir nota.", hint: "Não divulga informação, apenas coleta dados para análise.", correctType: "Pesquisa", feedback: "Isso mesmo! A Pesquisa serve para levantamento de dados." }
+        ];
+
+        const activityTypes = [
+            { name: "Fórum", icon: "message-square", color: "bg-indigo-500" },
+            { name: "Tarefa", icon: "file-text", color: "bg-yellow-500" },
+            { name: "Questionário", icon: "check-square", color: "bg-green-600" },
+            { name: "Glossário", icon: "book", color: "bg-purple-500" },
+            { name: "Base de Dados", icon: "database", color: "bg-red-500" },
+            { name: "Wiki", icon: "edit", color: "bg-blue-500" },
+            { name: "Chat", icon: "message-circle", color: "bg-pink-500" },
+            { name: "Pesquisa", icon: "bar-chart-2", color: "bg-orange-500" },
+        ];
+
+        // --- ESTADO ---
+        let currentState = {
+            cards: [],
+            index: 0,
+            score: 0,
+            isLocked: false // Evita interações durante animações
+        };
+
+        // --- ELEMENTOS DOM ---
+        const els = {
+            score: document.getElementById('score-display'),
+            finalScore: document.getElementById('final-score'),
+            progressBar: document.getElementById('progress-bar'),
+            cardIndex: document.getElementById('current-index'),
+            totalCards: document.getElementById('total-cards'),
+            description: document.getElementById('card-description'),
+            dropZone: document.getElementById('drop-zone'),
+            dropPlaceholder: document.getElementById('drop-placeholder'),
+            dropSuccess: document.getElementById('drop-success'),
+            dropError: document.getElementById('drop-error'),
+            cardContainer: document.getElementById('card-container'),
+            hintBtn: document.getElementById('hint-btn'),
+            hintText: document.getElementById('hint-text'),
+            feedbackText: document.getElementById('feedback-text'),
+            draggableContainer: document.getElementById('draggable-container'),
+            gameOver: document.getElementById('game-over'),
+            gameContainer: document.getElementById('game-container')
+        };
+
+        // --- INICIALIZAÇÃO ---
+        function initGame() {
+            // Embaralhar cartas
+            currentState.cards = [...gameData].sort(() => Math.random() - 0.5);
+            currentState.index = 0;
+            currentState.score = 0;
+            currentState.isLocked = false;
+
+            // Resetar UI
+            updateScore(0);
+            els.gameOver.classList.add('hidden');
+            els.gameContainer.classList.remove('hidden');
+            
+            // Renderizar itens arrastáveis
+            renderDraggables();
+            
+            // Carregar primeira carta
+            loadCard();
+        }
+
+        function updateScore(points) {
+            currentState.score += points;
+            if (currentState.score < 0) currentState.score = 0;
+            els.score.innerText = currentState.score;
+        }
+
+        function loadCard() {
+            if (currentState.index >= currentState.cards.length) {
+                endGame();
+                return;
+            }
+
+            const card = currentState.cards[currentState.index];
+            
+            // Atualizar textos
+            els.description.innerText = `"${card.description}"`;
+            els.cardIndex.innerText = currentState.index + 1;
+            els.totalCards.innerText = currentState.cards.length;
+            
+            // Atualizar barra de progresso
+            const progress = ((currentState.index) / currentState.cards.length) * 100;
+            els.progressBar.style.width = `${progress}%`;
+
+            // Resetar visual da zona
+            resetDropZone();
+            
+            // Resetar dicas e feedback
+            els.hintBtn.classList.remove('hidden');
+            els.hintText.classList.add('hidden');
+            els.hintText.innerText = `💡 Dica: ${card.hint}`;
+            els.feedbackText.classList.add('hidden');
+            els.feedbackText.className = "text-center font-medium hidden"; // reset colors
+
+            currentState.isLocked = false;
+        }
+
+        function resetDropZone() {
+            els.dropZone.className = "w-full h-48 sm:h-64 rounded-2xl border-4 border-dashed border-gray-300 bg-gray-50 flex items-center justify-center transition-all duration-300 relative overflow-hidden";
+            els.cardContainer.className = "relative bg-white rounded-3xl shadow-xl border-2 border-blue-100 p-6 sm:p-10 flex flex-col items-center text-center justify-between min-h-[350px] transition-colors duration-300";
+            
+            els.dropPlaceholder.classList.remove('hidden');
+            els.dropSuccess.classList.add('hidden');
+            els.dropError.classList.add('hidden');
+        }
+
+        function renderDraggables() {
+            els.draggableContainer.innerHTML = '';
+            activityTypes.forEach(activity => {
+                const el = document.createElement('div');
+                el.className = `draggable-item flex flex-col items-center justify-center p-3 m-2 rounded-xl shadow-md cursor-grab transition-transform transform hover:scale-105 active:cursor-grabbing ${activity.color} text-white w-24 h-24 sm:w-28 sm:h-28 touch-none select-none`;
+                el.setAttribute('draggable', 'true');
+                el.setAttribute('data-name', activity.name);
+                
+                // Icone e Texto
+                el.innerHTML = `
+                    <div class="mb-2 drop-shadow-md"><i data-lucide="${activity.icon}" class="w-8 h-8"></i></div>
+                    <span class="text-xs sm:text-sm font-bold text-center leading-tight pointer-events-none">${activity.name}</span>
+                `;
+
+                // Event Listeners (Desktop & Mobile)
+                addDragEvents(el);
+                
+                els.draggableContainer.appendChild(el);
+            });
+            lucide.createIcons();
+        }
+
+        // --- LÓGICA DE DRAG & DROP ---
+
+        function addDragEvents(el) {
+            // Desktop (HTML5 Drag API)
+            el.addEventListener('dragstart', (e) => {
+                if (currentState.isLocked) {
+                    e.preventDefault();
+                    return;
+                }
+                e.dataTransfer.setData('text/plain', el.dataset.name);
+                el.classList.add('opacity-50');
+            });
+
+            el.addEventListener('dragend', () => {
+                el.classList.remove('opacity-50');
+                els.dropZone.classList.remove('drop-active');
+            });
+
+            // Mobile (Touch API)
+            let touchClone = null;
+            let touchStartX = 0;
+            let touchStartY = 0;
+
+            el.addEventListener('touchstart', (e) => {
+                if (currentState.isLocked) return;
+                const touch = e.touches[0];
+                const rect = el.getBoundingClientRect();
+                
+                // Criar clone visual
+                touchClone = el.cloneNode(true);
+                touchClone.classList.add('dragging');
+                touchClone.style.left = `${rect.left}px`;
+                touchClone.style.top = `${rect.top}px`;
+                touchClone.style.width = `${rect.width}px`;
+                touchClone.style.height = `${rect.height}px`;
+                document.body.appendChild(touchClone);
+
+                touchStartX = touch.clientX - rect.left;
+                touchStartY = touch.clientY - rect.top;
+            }, { passive: false });
+
+            el.addEventListener('touchmove', (e) => {
+                if (!touchClone) return;
+                e.preventDefault(); // Evita scroll
+                const touch = e.touches[0];
+                touchClone.style.left = `${touch.clientX - touchStartX}px`;
+                touchClone.style.top = `${touch.clientY - touchStartY}px`;
+
+                // Highlight dropzone se estiver em cima
+                const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+                if (elementBelow && (elementBelow === els.dropZone || els.dropZone.contains(elementBelow))) {
+                    els.dropZone.classList.add('drop-active');
+                } else {
+                    els.dropZone.classList.remove('drop-active');
+                }
+            }, { passive: false });
+
+            el.addEventListener('touchend', (e) => {
+                if (!touchClone) return;
+                
+                // Verificar se soltou na zona
+                const touch = e.changedTouches[0];
+                const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+                
+                if (elementBelow && (elementBelow === els.dropZone || els.dropZone.contains(elementBelow))) {
+                    handleAttempt(el.dataset.name);
+                }
+
+                // Limpeza
+                touchClone.remove();
+                touchClone = null;
+                els.dropZone.classList.remove('drop-active');
+            });
+        }
+
+        // Setup Drop Zone (Desktop)
+        els.dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault(); // Necessário para permitir o drop
+            els.dropZone.classList.add('drop-active');
+        });
+
+        els.dropZone.addEventListener('dragleave', () => {
+            els.dropZone.classList.remove('drop-active');
+        });
+
+        els.dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            const droppedName = e.dataTransfer.getData('text/plain');
+            handleAttempt(droppedName);
+            els.dropZone.classList.remove('drop-active');
+        });
+
+        // --- VALIDAÇÃO ---
+
+        function handleAttempt(droppedName) {
+            if (currentState.isLocked) return;
+
+            const currentCard = currentState.cards[currentState.index];
+
+            if (droppedName === currentCard.correctType) {
+                handleSuccess(currentCard);
+            } else {
+                handleError();
+            }
+        }
+
+        function handleSuccess(card) {
+            currentState.isLocked = true;
+            updateScore(10);
+
+            // Visual Sucesso
+            els.dropPlaceholder.classList.add('hidden');
+            els.dropError.classList.add('hidden');
+            els.dropSuccess.classList.remove('hidden');
+            
+            // Estilos Borda/Fundo Verde
+            els.dropZone.classList.remove('border-dashed', 'bg-gray-50');
+            els.dropZone.classList.add('border-green-500', 'bg-green-50');
+            els.cardContainer.classList.add('border-green-400', 'bg-green-50');
+
+            // Feedback Texto
+            els.feedbackText.innerText = card.feedback;
+            els.feedbackText.classList.remove('hidden', 'text-red-500');
+            els.feedbackText.classList.add('text-green-700', 'fade-in');
+            els.hintBtn.classList.add('hidden');
+
+            // Próxima carta após delay
+            setTimeout(() => {
+                currentState.index++;
+                loadCard();
+            }, 2000);
+        }
+
+        function handleError() {
+            updateScore(-2); // Penalidade
+
+            // Visual Erro temporário
+            els.dropPlaceholder.classList.add('hidden');
+            els.dropError.classList.remove('hidden');
+            
+            els.dropZone.classList.remove('border-dashed', 'bg-gray-50');
+            els.dropZone.classList.add('border-red-500', 'bg-red-50', 'shake'); // Shake animation
+            
+            els.feedbackText.innerText = "Ops! Essa não é a atividade ideal. Tente outra!";
+            els.feedbackText.classList.remove('hidden', 'text-green-700');
+            els.feedbackText.classList.add('text-red-500');
+
+            // Resetar após breve momento
+            currentState.isLocked = true; // Breve bloqueio para evitar spam
+            setTimeout(() => {
+                els.dropError.classList.add('hidden');
+                els.dropPlaceholder.classList.remove('hidden');
+                els.dropZone.classList.remove('border-red-500', 'bg-red-50', 'shake');
+                els.dropZone.classList.add('border-dashed', 'bg-gray-50');
+                els.feedbackText.classList.add('hidden');
+                currentState.isLocked = false;
+            }, 1200);
+        }
+
+        // --- UI UTILS ---
+
+        els.hintBtn.addEventListener('click', () => {
+            updateScore(-5);
+            els.hintBtn.classList.add('hidden');
+            els.hintText.classList.remove('hidden');
+        });
+
+        function endGame() {
+            els.finalScore.innerText = currentState.score;
+            els.gameContainer.classList.add('hidden');
+            els.gameOver.classList.remove('hidden');
+        }
+
+        // Start
+        initGame();
+
+    </script>
+</body>
+</html>
