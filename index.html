@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Moodle Match: Desafio Pedagógico</title>
+    <title>Moodle Match: Desafio de Contexto</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -12,7 +12,7 @@
     <script src="https://unpkg.com/lucide@latest"></script>
 
     <style>
-        /* Animações Personalizadas */
+        /* Animações */
         @keyframes shake {
             0%, 100% { transform: translateX(0); }
             10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
@@ -20,183 +20,233 @@
         }
         .shake { animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both; }
 
-        @keyframes bounce-in {
-            0% { transform: scale(0.8); opacity: 0; }
-            50% { transform: scale(1.1); }
+        @keyframes pop-in {
+            0% { transform: scale(0.5); opacity: 0; }
             100% { transform: scale(1); opacity: 1; }
         }
-        .bounce-in { animation: bounce-in 0.5s ease-out; }
+        .pop-in { animation: pop-in 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
 
-        @keyframes fade-in {
-            from { opacity: 0; transform: translateY(10px); }
+        @keyframes fade-in-up {
+            from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
         }
-        .fade-in { animation: fade-in 0.4s ease-out forwards; }
+        .fade-in-up { animation: fade-in-up 0.5s ease-out forwards; }
 
-        /* Estilos para Drag and Drop Móvel */
+        /* Drag & Drop */
         .dragging {
-            opacity: 0.5;
-            position: fixed; /* Importante para o touchmove seguir o dedo */
-            pointer-events: none; /* Deixa o evento passar para o elemento de baixo (dropzone) */
+            opacity: 0.8;
+            position: fixed;
+            pointer-events: none;
             z-index: 1000;
-            width: 100px; /* Tamanho fixo durante o arraste */
-            height: 100px;
+            transform: scale(1.1);
         }
 
         .drop-active {
-            border-color: #60a5fa !important; /* blue-400 */
+            border-color: #3b82f6 !important; /* blue-500 */
             background-color: #eff6ff !important; /* blue-50 */
             transform: scale(1.02);
+            box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.3);
+        }
+
+        /* Scrollbar customizada para o relatório */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
         }
     </style>
 </head>
-<body class="bg-gradient-to-br from-blue-50 to-white min-h-screen font-sans text-gray-800 flex flex-col items-center p-4 selection:bg-blue-200">
+<body class="bg-gray-50 min-h-screen font-sans text-gray-800 flex flex-col items-center p-4 selection:bg-blue-200">
 
     <!-- Header -->
-    <header class="w-full max-w-5xl flex justify-between items-center mb-6 bg-white p-4 rounded-xl shadow-sm border-l-8 border-yellow-400 fade-in">
+    <header class="w-full max-w-5xl flex justify-between items-center mb-6 bg-white p-4 rounded-xl shadow-sm border-l-8 border-yellow-400 fade-in-up">
         <div class="flex items-center gap-4">
-            <!-- Logo Esquerda (h-50 w-50 proproção 1:1) -->
-            <!-- Substitua o src pelo link da sua imagem -->
-            <img src="1.jpg" alt="Logo Esquerda" class="h-20 w-20 object-contain rounded-md border border-gray-100">
+            <!-- Logo Esquerda -->
+            <img src="1.jpg" alt="Logo Esquerda" class="h-16 w-16 sm:h-20 sm:w-20 object-contain rounded-md border border-gray-100">
             
             <div class="flex flex-col">
-                <h1 class="text-2xl sm:text-3xl font-extrabold text-blue-900 tracking-tight">MOODLE MATCH</h1>
-                <p class="text-xs sm:text-sm text-gray-500 uppercase tracking-widest">Atividades e Objetivos Educacionais</p>
+                <h1 class="text-xl sm:text-3xl font-extrabold text-blue-900 tracking-tight leading-tight">MOODLE CONTEXT</h1>
+                <p class="text-[10px] sm:text-sm text-gray-500 uppercase tracking-widest">Arraste a atividade para o cenário correto</p>
             </div>
         </div>
 
-        <div class="flex items-center space-x-4">
+        <div class="flex items-center space-x-2 sm:space-x-4">
             <div class="text-right hidden sm:block">
                 <span class="block text-xs text-gray-400">PONTUAÇÃO</span>
                 <span id="score-display" class="text-2xl font-bold text-blue-600">0</span>
             </div>
             <div class="bg-blue-100 p-2 rounded-full">
-                <i data-lucide="trophy" class="text-blue-600 w-6 h-6"></i>
+                <i data-lucide="trophy" class="text-blue-600 w-5 h-5 sm:w-6 sm:h-6"></i>
             </div>
             
-            <!-- Logo Direita (h-25 w-50 proporção 1:2) -->
-            <!-- Substitua o src pelo link da sua imagem -->
-            <img src="2.png" alt="Logo Direita" class="h-10 w-20 object-contain rounded-md border border-gray-100">
+            <!-- Logo Direita -->
+            <img src="2.png" alt="Logo Direita" class="h-8 sm:h-10 w-auto object-contain rounded-md border border-gray-100">
         </div>
     </header>
 
     <!-- Game Container -->
-    <main id="game-container" class="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-12 gap-6 relative">
+    <main id="game-container" class="w-full max-w-4xl flex flex-col items-center relative gap-8">
         
-        <!-- Coluna Esquerda: Cartão de Desafio -->
-        <div class="lg:col-span-7 flex flex-col space-y-4 fade-in" style="animation-delay: 0.1s;">
-            
-            <!-- Barra de Progresso -->
-            <div class="w-full bg-gray-200 rounded-full h-2.5 mb-2 overflow-hidden">
+        <!-- Barra de Progresso e Contador de Rodadas -->
+        <div class="w-full flex flex-col gap-1 fade-in-up">
+            <div class="flex justify-between text-xs font-bold text-gray-400 uppercase tracking-wider px-1">
+                <span>Progresso</span>
+                <span><span id="current-round-display">1</span> / <span id="total-rounds-display">16</span></span>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
                 <div id="progress-bar" class="bg-blue-600 h-2.5 rounded-full transition-all duration-500" style="width: 0%"></div>
             </div>
+        </div>
 
-            <!-- Cartão -->
-            <div id="card-container" class="relative bg-white rounded-3xl shadow-xl border-2 border-blue-100 p-6 sm:p-10 flex flex-col items-center text-center justify-between min-h-[350px] transition-colors duration-300">
-                
-                <div class="absolute top-4 right-4 text-xs font-bold text-gray-300">
-                    <span id="current-index">1</span> / <span id="total-cards">8</span>
-                </div>
-
-                <div class="mb-4 w-full">
-                   <h3 class="text-gray-400 text-sm font-bold uppercase tracking-wider mb-2">Objetivo Pedagógico</h3>
-                   <p id="card-description" class="text-xl sm:text-2xl font-bold text-gray-800 leading-relaxed min-h-[80px] flex items-center justify-center">
-                     Carregando...
-                   </p>
-                </div>
-
-                <!-- Zona de Soltar (Drop Zone) -->
-                <div id="drop-zone" class="w-full h-48 sm:h-64 rounded-2xl border-4 border-dashed border-gray-300 bg-gray-50 flex items-center justify-center transition-all duration-300 relative overflow-hidden">
-                    <!-- Conteúdo Padrão -->
-                    <div id="drop-placeholder" class="text-center pointer-events-none">
-                        <span class="text-gray-400 text-lg font-medium animate-pulse block">Arraste a atividade aqui</span>
-                    </div>
-                    
-                    <!-- Conteúdo Sucesso (Escondido) -->
-                    <div id="drop-success" class="hidden flex-col items-center text-green-600 animate-bounce">
-                        <i data-lucide="check-square" class="w-12 h-12 mb-2"></i>
-                        <span class="text-xl font-bold">Correto!</span>
-                    </div>
-
-                    <!-- Conteúdo Erro (Escondido) -->
-                    <div id="drop-error" class="hidden flex-col items-center text-red-600">
-                        <i data-lucide="x" class="w-12 h-12 mb-2"></i>
-                        <span class="text-xl font-bold">Tente Novamente</span>
-                    </div>
-                </div>
-
-                <!-- Área de Feedback e Dicas -->
-                <div class="h-16 mt-4 flex items-center justify-center w-full">
-                   <p id="feedback-text" class="text-center font-medium hidden"></p>
-                   
-                   <button id="hint-btn" class="text-sm text-blue-400 hover:text-blue-600 flex items-center transition-colors">
-                      <i data-lucide="info" class="w-4 h-4 mr-1"></i> Precisa de uma dica? (-5 pts)
-                   </button>
-                   
-                   <p id="hint-text" class="hidden text-sm text-yellow-600 bg-yellow-50 px-3 py-1 rounded-lg border border-yellow-200 fade-in"></p>
-                </div>
+        <!-- Área da ATIVIDADE (Draggable) -->
+        <div class="flex flex-col items-center w-full fade-in-up" style="animation-delay: 0.1s;">
+            <h2 class="text-gray-400 text-sm font-bold uppercase tracking-wider mb-4">Atividade Disponível</h2>
+            
+            <!-- O Ícone Arrastável -->
+            <div id="activity-source" class="cursor-grab active:cursor-grabbing hover:scale-105 transition-transform z-10 touch-none">
+                <!-- Conteúdo injetado via JS -->
+            </div>
+            
+            <div class="mt-4 text-center text-sm text-gray-400 animate-pulse">
+                <i data-lucide="arrow-down" class="inline w-4 h-4"></i> Arraste o ícone acima para um dos contextos abaixo
             </div>
         </div>
 
-        <!-- Coluna Direita: Itens Arrastáveis -->
-        <div class="lg:col-span-5 bg-white rounded-3xl shadow-lg border border-gray-100 p-4 sm:p-6 fade-in" style="animation-delay: 0.2s;">
-            <h3 class="text-center text-gray-500 font-bold mb-4 uppercase text-sm">Arraste a Atividade</h3>
-            <div id="draggable-container" class="flex flex-wrap justify-center content-start gap-2">
-                <!-- Os itens serão gerados via JS -->
-            </div>
+        <!-- Área dos CONTEXTOS (Drop Zones) -->
+        <div id="contexts-grid" class="w-full grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 fade-in-up pb-8" style="animation-delay: 0.2s;">
+            <!-- Os 3 cartões de contexto serão gerados aqui -->
         </div>
+
     </main>
 
-    <!-- Tela de Game Over (Escondida) -->
-    <div id="game-over" class="hidden fixed inset-0 bg-white/90 z-50 flex items-center justify-center p-4 fade-in">
-        <div class="w-full max-w-lg bg-white rounded-3xl shadow-2xl p-8 text-center border border-gray-200">
-            <div class="w-24 h-24 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-6 bounce-in">
-              <i data-lucide="trophy" class="text-yellow-500 w-12 h-12"></i>
+    <!-- Tela de Game Over / Relatório -->
+    <div id="game-over" class="hidden fixed inset-0 bg-gray-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 fade-in-up overflow-y-auto">
+        <div class="w-full max-w-4xl bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            
+            <!-- Cabeçalho do Modal -->
+            <div class="bg-blue-600 p-6 text-white text-center flex-shrink-0">
+                <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3 pop-in">
+                  <i data-lucide="trophy" class="text-white w-8 h-8"></i>
+                </div>
+                <h2 class="text-2xl font-bold mb-1">Resultado Final</h2>
+                <div class="text-4xl font-bold"><span id="final-score">0</span> <span class="text-lg font-normal opacity-80">pontos</span></div>
             </div>
-            <h2 class="text-3xl font-bold text-gray-800 mb-2">Parabéns!</h2>
-            <p class="text-gray-600 mb-6">Você completou o ciclo de formação continuada do jogo.</p>
-            <div class="text-5xl font-bold text-blue-600 mb-8"><span id="final-score">0</span> <span class="text-xl text-gray-400 font-normal">pontos</span></div>
-            <button onclick="initGame()" class="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full font-bold shadow-lg transition-transform transform hover:scale-105 flex items-center mx-auto">
-              <i data-lucide="refresh-cw" class="w-5 h-5 mr-2"></i> Jogar Novamente
-            </button>
+
+            <!-- Lista de Resultados (Scrollable) -->
+            <div class="flex-grow overflow-y-auto p-6 bg-gray-50 custom-scrollbar">
+                <h3 class="text-gray-500 font-bold uppercase text-xs tracking-wider mb-4 border-b pb-2">Resumo das Atividades</h3>
+                <div id="results-list" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Cards de resultado serão injetados aqui -->
+                </div>
+            </div>
+
+            <!-- Rodapé do Modal -->
+            <div class="p-4 bg-white border-t border-gray-100 flex-shrink-0 text-center">
+                <button onclick="initGame()" class="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full font-bold shadow-lg transition-transform transform hover:scale-105 flex items-center mx-auto">
+                  <i data-lucide="refresh-cw" class="w-5 h-5 mr-2"></i> Reiniciar Jogo
+                </button>
+            </div>
         </div>
     </div>
 
-    <footer class="mt-8 text-center text-gray-400 text-xs pb-4">
+    <footer class="mt-auto py-6 text-center text-gray-400 text-xs">
         Baseado no material: "Atividades no Moodle e Seus Objetivos Educacionais" - UFC/SMED
     </footer>
 
     <!-- Lógica do Jogo -->
     <script>
-        // --- DADOS ---
+        // --- DADOS EXPANDIDOS (2 Contextos por Atividade) ---
         const gameData = [
-            { id: 1, description: "Preciso que os alunos construam um texto único colaborativamente.", hint: "A essência desta atividade é ser um documento colaborativo.", correctType: "Wiki", feedback: "Exato! A Wiki é ideal para construção coletiva de textos." },
-            { id: 2, description: "Quero avaliar submissões individuais de arquivos ou textos online com feedback personalizado.", hint: "Não permite colaboração direta entre estudantes.", correctType: "Tarefa", feedback: "Perfeito! A Tarefa é focada na entrega individual." },
-            { id: 3, description: "Preciso de uma avaliação automática para questões objetivas.", hint: "A configuração é feita em etapas e permite feedback automático.", correctType: "Questionário", feedback: "Isso! Questionários são ótimos para correção automática." },
-            { id: 4, description: "Quero criar um dicionário de conceitos construído pela turma.", hint: "Permite compartilhamento de termos e verbetes.", correctType: "Glossário", feedback: "Correto! O Glossário constrói uma base de conhecimento." },
-            { id: 5, description: "Poderosa ferramenta para debates e discussões assíncronas.", hint: "Os estudantes podem discutir um tema e o professor mediar.", correctType: "Fórum", feedback: "Excelente! O Fórum é a principal ferramenta de comunicação." },
-            { id: 6, description: "Compartilhamento de diversos tipos de dados (imagens, links, arquivos) pelos alunos.", hint: "Funciona como um repositório ou galeria colaborativa.", correctType: "Base de Dados", feedback: "Muito bem! A Base de Dados é flexível." },
-            { id: 7, description: "Comunicação síncrona (tempo real) para tirar dúvidas rápidas.", hint: "Não permite nota, o feedback é feito via conversa.", correctType: "Chat", feedback: "Certo! O Chat é ideal para interações imediatas." },
-            { id: 8, description: "Coleta de dados para diagnóstico sem atribuir nota.", hint: "Não divulga informação, apenas coleta dados para análise.", correctType: "Pesquisa", feedback: "Isso mesmo! A Pesquisa serve para levantamento de dados." }
-        ];
-
-        const activityTypes = [
-            { name: "Fórum", icon: "message-square", color: "bg-indigo-500" },
-            { name: "Tarefa", icon: "file-text", color: "bg-yellow-500" },
-            { name: "Questionário", icon: "check-square", color: "bg-green-600" },
-            { name: "Glossário", icon: "book", color: "bg-purple-500" },
-            { name: "Base de Dados", icon: "database", color: "bg-red-500" },
-            { name: "Wiki", icon: "edit", color: "bg-blue-500" },
-            { name: "Chat", icon: "message-circle", color: "bg-pink-500" },
-            { name: "Pesquisa", icon: "bar-chart-2", color: "bg-orange-500" },
+            { 
+                type: "Wiki", 
+                icon: "edit", 
+                color: "bg-blue-500",
+                contexts: [
+                    "Preciso que a turma construa, em conjunto, um único texto ou documento de referência sobre o tema da aula.",
+                    "Os alunos devem planejar um projeto em grupo, editando o cronograma e etapas no mesmo arquivo simultaneamente."
+                ]
+            },
+            { 
+                type: "Tarefa", 
+                icon: "file-text", 
+                color: "bg-yellow-500",
+                contexts: [
+                    "Quero que cada aluno envie um relatório individual em PDF para que eu possa corrigir e dar nota.",
+                    "Os alunos precisam submeter uma foto ou arquivo de um experimento feito em casa para avaliação privada."
+                ]
+            },
+            { 
+                type: "Questionário", 
+                icon: "check-square", 
+                color: "bg-green-600",
+                contexts: [
+                    "Preciso aplicar uma prova com questões de múltipla escolha que sejam corrigidas automaticamente pelo sistema.",
+                    "Quero criar um teste rápido de verificação de leitura antes da aula síncrona para diagnóstico."
+                ]
+            },
+            { 
+                type: "Glossário", 
+                icon: "book", 
+                color: "bg-purple-500",
+                contexts: [
+                    "A turma deve criar colaborativamente um dicionário com os termos técnicos aprendidos na disciplina.",
+                    "Quero organizar uma lista de verbetes onde os alunos adicionam definições e imagens sobre o assunto."
+                ]
+            },
+            { 
+                type: "Fórum", 
+                icon: "message-square", 
+                color: "bg-indigo-500",
+                contexts: [
+                    "Quero promover um debate profundo onde os alunos possam refletir e responder em dias e horários diferentes.",
+                    "Preciso de um espaço central para avisos e dúvidas gerais que fique registrado para todos verem."
+                ]
+            },
+            { 
+                type: "Base de Dados", 
+                icon: "database", 
+                color: "bg-red-500",
+                contexts: [
+                    "Quero montar uma galeria onde os alunos compartilhem fotos, links e referências visuais sobre suas cidades.",
+                    "Os alunos devem coletar e catalogar artigos científicos (PDFs) relevantes para a disciplina em um repositório comum."
+                ]
+            },
+            { 
+                type: "Chat", 
+                icon: "message-circle", 
+                color: "bg-pink-500",
+                contexts: [
+                    "Vou realizar um plantão de dúvidas online em tempo real para interagir imediatamente com os alunos.",
+                    "Quero fazer um 'brainstorming' rápido e síncrono para decidir o tema do trabalho final com a turma conectada."
+                ]
+            },
+            { 
+                type: "Pesquisa", 
+                icon: "bar-chart-2", 
+                color: "bg-orange-500",
+                contexts: [
+                    "Preciso coletar a opinião anônima dos alunos sobre a metodologia usada na disciplina.",
+                    "Quero fazer uma votação simples para escolher a data da próxima prova, sem atribuir nota."
+                ]
+            }
         ];
 
         // --- ESTADO ---
-        let currentState = {
-            cards: [],
-            index: 0,
+        let state = {
+            rounds: [],
+            currentRoundIndex: 0,
             score: 0,
-            isLocked: false // Evita interações durante animações
+            isLocked: false,
+            history: [] // Armazena o resultado de cada rodada
         };
 
         // --- ELEMENTOS DOM ---
@@ -204,283 +254,309 @@
             score: document.getElementById('score-display'),
             finalScore: document.getElementById('final-score'),
             progressBar: document.getElementById('progress-bar'),
-            cardIndex: document.getElementById('current-index'),
-            totalCards: document.getElementById('total-cards'),
-            description: document.getElementById('card-description'),
-            dropZone: document.getElementById('drop-zone'),
-            dropPlaceholder: document.getElementById('drop-placeholder'),
-            dropSuccess: document.getElementById('drop-success'),
-            dropError: document.getElementById('drop-error'),
-            cardContainer: document.getElementById('card-container'),
-            hintBtn: document.getElementById('hint-btn'),
-            hintText: document.getElementById('hint-text'),
-            feedbackText: document.getElementById('feedback-text'),
-            draggableContainer: document.getElementById('draggable-container'),
+            currentRoundDisplay: document.getElementById('current-round-display'),
+            totalRoundsDisplay: document.getElementById('total-rounds-display'),
+            activitySource: document.getElementById('activity-source'),
+            contextsGrid: document.getElementById('contexts-grid'),
+            gameContainer: document.getElementById('game-container'),
             gameOver: document.getElementById('game-over'),
-            gameContainer: document.getElementById('game-container')
+            resultsList: document.getElementById('results-list')
         };
 
         // --- INICIALIZAÇÃO ---
         function initGame() {
-            // Embaralhar cartas
-            currentState.cards = [...gameData].sort(() => Math.random() - 0.5);
-            currentState.index = 0;
-            currentState.score = 0;
-            currentState.isLocked = false;
-
-            // Resetar UI
+            state.score = 0;
+            state.currentRoundIndex = 0;
+            state.isLocked = false;
+            state.history = []; // Reset histórico
             updateScore(0);
+            
+            // Gerar 16 Rodadas (Todas as combinações possíveis de Atividade + Contexto)
+            let allRounds = [];
+            
+            gameData.forEach(activity => {
+                activity.contexts.forEach(context => {
+                    // Para cada contexto real, criamos uma rodada
+                    allRounds.push({
+                        targetActivity: activity, // A atividade correta (ícone)
+                        correctContextText: context // O texto correto
+                    });
+                });
+            });
+
+            // Embaralhar as rodadas para a ordem ser aleatória
+            state.rounds = allRounds.sort(() => Math.random() - 0.5);
+            
+            // Atualizar UI total
+            els.totalRoundsDisplay.innerText = state.rounds.length;
+
             els.gameOver.classList.add('hidden');
             els.gameContainer.classList.remove('hidden');
             
-            // Renderizar itens arrastáveis
-            renderDraggables();
-            
-            // Carregar primeira carta
-            loadCard();
+            loadRound();
         }
 
         function updateScore(points) {
-            currentState.score += points;
-            if (currentState.score < 0) currentState.score = 0;
-            els.score.innerText = currentState.score;
+            state.score += points;
+            if (state.score < 0) state.score = 0;
+            els.score.innerText = state.score;
         }
 
-        function loadCard() {
-            if (currentState.index >= currentState.cards.length) {
+        function loadRound() {
+            if (state.currentRoundIndex >= state.rounds.length) {
                 endGame();
                 return;
             }
 
-            const card = currentState.cards[currentState.index];
-            
-            // Atualizar textos
-            els.description.innerText = `"${card.description}"`;
-            els.cardIndex.innerText = currentState.index + 1;
-            els.totalCards.innerText = currentState.cards.length;
-            
-            // Atualizar barra de progresso
-            const progress = ((currentState.index) / currentState.cards.length) * 100;
+            const round = state.rounds[state.currentRoundIndex];
+            state.isLocked = false;
+
+            // Atualizar contadores e barra
+            els.currentRoundDisplay.innerText = state.currentRoundIndex + 1;
+            const progress = (state.currentRoundIndex / state.rounds.length) * 100;
             els.progressBar.style.width = `${progress}%`;
 
-            // Resetar visual da zona
-            resetDropZone();
+            // 1. Renderizar Atividade (Draggable) - O alvo da vez
+            renderDraggable(round.targetActivity);
+
+            // 2. Preparar Opções (1 Certa + 2 Erradas)
+            // A correta já temos: round.correctContextText
+            // Precisamos de 2 distratores de OUTRAS atividades
             
-            // Resetar dicas e feedback
-            els.hintBtn.classList.remove('hidden');
-            els.hintText.classList.add('hidden');
-            els.hintText.innerText = `💡 Dica: ${card.hint}`;
-            els.feedbackText.classList.add('hidden');
-            els.feedbackText.className = "text-center font-medium hidden"; // reset colors
+            const otherActivities = gameData.filter(a => a.type !== round.targetActivity.type);
+            const distractorActivity1 = otherActivities[Math.floor(Math.random() * otherActivities.length)];
+            const distractorActivity2 = otherActivities.filter(a => a !== distractorActivity1)[Math.floor(Math.random() * (otherActivities.length - 1))]; // Evita duplicata de tipo
 
-            currentState.isLocked = false;
-        }
+            // Pega um contexto aleatório dos distratores
+            const text1 = distractorActivity1.contexts[Math.floor(Math.random() * distractorActivity1.contexts.length)];
+            const text2 = distractorActivity2.contexts[Math.floor(Math.random() * distractorActivity2.contexts.length)];
 
-        function resetDropZone() {
-            els.dropZone.className = "w-full h-48 sm:h-64 rounded-2xl border-4 border-dashed border-gray-300 bg-gray-50 flex items-center justify-center transition-all duration-300 relative overflow-hidden";
-            els.cardContainer.className = "relative bg-white rounded-3xl shadow-xl border-2 border-blue-100 p-6 sm:p-10 flex flex-col items-center text-center justify-between min-h-[350px] transition-colors duration-300";
-            
-            els.dropPlaceholder.classList.remove('hidden');
-            els.dropSuccess.classList.add('hidden');
-            els.dropError.classList.add('hidden');
-        }
+            const options = [
+                { id: 'correct', text: round.correctContextText, type: round.targetActivity.type },
+                { id: 'wrong1', text: text1, type: distractorActivity1.type },
+                { id: 'wrong2', text: text2, type: distractorActivity2.type }
+            ].sort(() => Math.random() - 0.5);
 
-        function renderDraggables() {
-            els.draggableContainer.innerHTML = '';
-            activityTypes.forEach(activity => {
-                const el = document.createElement('div');
-                el.className = `draggable-item flex flex-col items-center justify-center p-3 m-2 rounded-xl shadow-md cursor-grab transition-transform transform hover:scale-105 active:cursor-grabbing ${activity.color} text-white w-24 h-24 sm:w-28 sm:h-28 touch-none select-none`;
-                el.setAttribute('draggable', 'true');
-                el.setAttribute('data-name', activity.name);
-                
-                // Icone e Texto
-                el.innerHTML = `
-                    <div class="mb-2 drop-shadow-md"><i data-lucide="${activity.icon}" class="w-8 h-8"></i></div>
-                    <span class="text-xs sm:text-sm font-bold text-center leading-tight pointer-events-none">${activity.name}</span>
-                `;
-
-                // Event Listeners (Desktop & Mobile)
-                addDragEvents(el);
-                
-                els.draggableContainer.appendChild(el);
-            });
+            renderContexts(options);
             lucide.createIcons();
         }
 
-        // --- LÓGICA DE DRAG & DROP ---
+        function renderDraggable(activity) {
+            els.activitySource.innerHTML = `
+                <div class="flex flex-col items-center justify-center p-4 rounded-2xl shadow-lg ${activity.color} text-white w-28 h-28 sm:w-32 sm:h-32 transform transition-transform" id="draggable-item" data-type="${activity.type}">
+                    <div class="mb-2 drop-shadow-md"><i data-lucide="${activity.icon}" class="w-10 h-10 sm:w-12 sm:h-12"></i></div>
+                    <span class="text-sm sm:text-base font-bold text-center leading-tight pointer-events-none">${activity.type}</span>
+                </div>
+            `;
+            
+            const el = document.getElementById('draggable-item');
+            addDragEvents(el);
+        }
 
+        function renderContexts(options) {
+            els.contextsGrid.innerHTML = '';
+            options.forEach((opt, idx) => {
+                const card = document.createElement('div');
+                card.className = "drop-zone relative bg-white border-2 border-gray-200 rounded-2xl p-6 flex items-center justify-center text-center shadow-sm min-h-[160px] transition-all duration-300";
+                card.dataset.correct = (opt.id === 'correct');
+                // Armazena o tipo deste contexto para logar no histórico se o usuário escolher errado
+                card.dataset.contextType = opt.type; 
+                card.dataset.contextText = opt.text;
+                
+                card.innerHTML = `
+                    <p class="text-gray-700 font-medium text-base sm:text-lg leading-relaxed pointer-events-none select-none">${opt.text}</p>
+                    <div class="feedback-msg absolute inset-0 rounded-2xl flex items-center justify-center bg-opacity-95 hidden font-bold text-lg p-4 animate-pop-in z-20"></div>
+                `;
+
+                addDropEvents(card);
+                els.contextsGrid.appendChild(card);
+            });
+        }
+
+        // --- DRAG & DROP ---
         function addDragEvents(el) {
-            // Desktop (HTML5 Drag API)
+            el.setAttribute('draggable', 'true');
             el.addEventListener('dragstart', (e) => {
-                if (currentState.isLocked) {
-                    e.preventDefault();
-                    return;
-                }
-                e.dataTransfer.setData('text/plain', el.dataset.name);
+                if (state.isLocked) { e.preventDefault(); return; }
+                e.dataTransfer.setData('text/plain', 'activity');
                 el.classList.add('opacity-50');
             });
-
             el.addEventListener('dragend', () => {
                 el.classList.remove('opacity-50');
-                els.dropZone.classList.remove('drop-active');
+                document.querySelectorAll('.drop-zone').forEach(z => z.classList.remove('drop-active'));
             });
 
-            // Mobile (Touch API)
+            // Touch support
             let touchClone = null;
-            let touchStartX = 0;
-            let touchStartY = 0;
+            let touchStartX = 0, touchStartY = 0;
 
             el.addEventListener('touchstart', (e) => {
-                if (currentState.isLocked) return;
+                if (state.isLocked) return;
                 const touch = e.touches[0];
                 const rect = el.getBoundingClientRect();
                 
-                // Criar clone visual
                 touchClone = el.cloneNode(true);
                 touchClone.classList.add('dragging');
                 touchClone.style.left = `${rect.left}px`;
                 touchClone.style.top = `${rect.top}px`;
                 touchClone.style.width = `${rect.width}px`;
                 touchClone.style.height = `${rect.height}px`;
+                
                 document.body.appendChild(touchClone);
-
                 touchStartX = touch.clientX - rect.left;
                 touchStartY = touch.clientY - rect.top;
             }, { passive: false });
 
             el.addEventListener('touchmove', (e) => {
                 if (!touchClone) return;
-                e.preventDefault(); // Evita scroll
+                e.preventDefault();
                 const touch = e.touches[0];
                 touchClone.style.left = `${touch.clientX - touchStartX}px`;
                 touchClone.style.top = `${touch.clientY - touchStartY}px`;
 
-                // Highlight dropzone se estiver em cima
-                const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
-                if (elementBelow && (elementBelow === els.dropZone || els.dropZone.contains(elementBelow))) {
-                    els.dropZone.classList.add('drop-active');
-                } else {
-                    els.dropZone.classList.remove('drop-active');
-                }
+                const zones = document.querySelectorAll('.drop-zone');
+                zones.forEach(z => {
+                    const rect = z.getBoundingClientRect();
+                    if (touch.clientX >= rect.left && touch.clientX <= rect.right &&
+                        touch.clientY >= rect.top && touch.clientY <= rect.bottom) {
+                        z.classList.add('drop-active');
+                    } else {
+                        z.classList.remove('drop-active');
+                    }
+                });
             }, { passive: false });
 
             el.addEventListener('touchend', (e) => {
                 if (!touchClone) return;
-                
-                // Verificar se soltou na zona
                 const touch = e.changedTouches[0];
-                const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
-                
-                if (elementBelow && (elementBelow === els.dropZone || els.dropZone.contains(elementBelow))) {
-                    handleAttempt(el.dataset.name);
-                }
+                const zones = document.querySelectorAll('.drop-zone');
+                let droppedZone = null;
+                zones.forEach(z => {
+                    const rect = z.getBoundingClientRect();
+                    if (touch.clientX >= rect.left && touch.clientX <= rect.right &&
+                        touch.clientY >= rect.top && touch.clientY <= rect.bottom) {
+                        droppedZone = z;
+                    }
+                    z.classList.remove('drop-active');
+                });
 
-                // Limpeza
+                if (droppedZone) handleAttempt(droppedZone);
                 touchClone.remove();
                 touchClone = null;
-                els.dropZone.classList.remove('drop-active');
             });
         }
 
-        // Setup Drop Zone (Desktop)
-        els.dropZone.addEventListener('dragover', (e) => {
-            e.preventDefault(); // Necessário para permitir o drop
-            els.dropZone.classList.add('drop-active');
-        });
+        function addDropEvents(zone) {
+            zone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                if (!state.isLocked) zone.classList.add('drop-active');
+            });
+            zone.addEventListener('dragleave', () => zone.classList.remove('drop-active'));
+            zone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                zone.classList.remove('drop-active');
+                handleAttempt(zone);
+            });
+        }
 
-        els.dropZone.addEventListener('dragleave', () => {
-            els.dropZone.classList.remove('drop-active');
-        });
+        // --- VALIDAÇÃO E HISTÓRICO ---
 
-        els.dropZone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            const droppedName = e.dataTransfer.getData('text/plain');
-            handleAttempt(droppedName);
-            els.dropZone.classList.remove('drop-active');
-        });
+        function handleAttempt(zone) {
+            if (state.isLocked) return;
+            state.isLocked = true;
 
-        // --- VALIDAÇÃO ---
+            const isCorrect = zone.dataset.correct === 'true';
+            const currentRound = state.rounds[state.currentRoundIndex];
+            const feedbackEl = zone.querySelector('.feedback-msg');
 
-        function handleAttempt(droppedName) {
-            if (currentState.isLocked) return;
+            // Salvar no histórico
+            state.history.push({
+                activity: currentRound.targetActivity, // A atividade (ícone) que foi arrastada
+                correctContext: currentRound.correctContextText, // Onde deveria ter sido
+                selectedContext: zone.dataset.contextText, // Onde o usuário soltou
+                wasCorrect: isCorrect
+            });
 
-            const currentCard = currentState.cards[currentState.index];
-
-            if (droppedName === currentCard.correctType) {
-                handleSuccess(currentCard);
+            if (isCorrect) {
+                updateScore(10);
+                zone.classList.remove('border-gray-200');
+                zone.classList.add('border-green-500', 'bg-green-50');
+                feedbackEl.innerHTML = `<div class="text-center text-green-700"><i data-lucide="check-circle" class="w-10 h-10 mx-auto mb-2"></i>Correto!</div>`;
+                feedbackEl.classList.remove('hidden', 'bg-red-100');
+                feedbackEl.classList.add('bg-green-100');
             } else {
-                handleError();
+                updateScore(0); // Sem pontos negativos para não frustrar em jogo longo
+                zone.classList.remove('border-gray-200');
+                zone.classList.add('border-red-500', 'bg-red-50', 'shake');
+                feedbackEl.innerHTML = `<div class="text-center text-red-700"><i data-lucide="x-circle" class="w-10 h-10 mx-auto mb-2"></i>Ops!</div>`;
+                feedbackEl.classList.remove('hidden', 'bg-green-100');
+                feedbackEl.classList.add('bg-red-100');
             }
-        }
-
-        function handleSuccess(card) {
-            currentState.isLocked = true;
-            updateScore(10);
-
-            // Visual Sucesso
-            els.dropPlaceholder.classList.add('hidden');
-            els.dropError.classList.add('hidden');
-            els.dropSuccess.classList.remove('hidden');
             
-            // Estilos Borda/Fundo Verde
-            els.dropZone.classList.remove('border-dashed', 'bg-gray-50');
-            els.dropZone.classList.add('border-green-500', 'bg-green-50');
-            els.cardContainer.classList.add('border-green-400', 'bg-green-50');
+            document.querySelectorAll('.drop-zone').forEach(z => { if(z !== zone) z.classList.add('opacity-40'); });
+            lucide.createIcons();
 
-            // Feedback Texto
-            els.feedbackText.innerText = card.feedback;
-            els.feedbackText.classList.remove('hidden', 'text-red-500');
-            els.feedbackText.classList.add('text-green-700', 'fade-in');
-            els.hintBtn.classList.add('hidden');
-
-            // Próxima carta após delay
             setTimeout(() => {
-                currentState.index++;
-                loadCard();
-            }, 2000);
+                state.currentRoundIndex++;
+                loadRound();
+            }, 1500);
         }
-
-        function handleError() {
-            updateScore(-2); // Penalidade
-
-            // Visual Erro temporário
-            els.dropPlaceholder.classList.add('hidden');
-            els.dropError.classList.remove('hidden');
-            
-            els.dropZone.classList.remove('border-dashed', 'bg-gray-50');
-            els.dropZone.classList.add('border-red-500', 'bg-red-50', 'shake'); // Shake animation
-            
-            els.feedbackText.innerText = "Ops! Essa não é a atividade ideal. Tente outra!";
-            els.feedbackText.classList.remove('hidden', 'text-green-700');
-            els.feedbackText.classList.add('text-red-500');
-
-            // Resetar após breve momento
-            currentState.isLocked = true; // Breve bloqueio para evitar spam
-            setTimeout(() => {
-                els.dropError.classList.add('hidden');
-                els.dropPlaceholder.classList.remove('hidden');
-                els.dropZone.classList.remove('border-red-500', 'bg-red-50', 'shake');
-                els.dropZone.classList.add('border-dashed', 'bg-gray-50');
-                els.feedbackText.classList.add('hidden');
-                currentState.isLocked = false;
-            }, 1200);
-        }
-
-        // --- UI UTILS ---
-
-        els.hintBtn.addEventListener('click', () => {
-            updateScore(-5);
-            els.hintBtn.classList.add('hidden');
-            els.hintText.classList.remove('hidden');
-        });
 
         function endGame() {
-            els.finalScore.innerText = currentState.score;
+            els.finalScore.innerText = state.score;
+            renderResults(); // Gera o relatório
             els.gameContainer.classList.add('hidden');
             els.gameOver.classList.remove('hidden');
         }
 
-        // Start
+        function renderResults() {
+            const list = els.resultsList;
+            list.innerHTML = '';
+
+            state.history.forEach((item, index) => {
+                const card = document.createElement('div');
+                // Estilo base do card
+                card.className = `p-4 rounded-xl border-l-4 shadow-sm text-sm relative bg-white ${item.wasCorrect ? 'border-green-500' : 'border-red-500'}`;
+
+                const iconColorClass = item.wasCorrect ? 'text-green-600 bg-green-100' : 'text-red-600 bg-red-100';
+                const statusIcon = item.wasCorrect ? 'check-circle' : 'x-circle';
+
+                card.innerHTML = `
+                    <div class="flex items-start gap-3">
+                        <div class="flex-shrink-0 mt-1">
+                            <div class="${iconColorClass} p-2 rounded-full">
+                                <i data-lucide="${statusIcon}" class="w-5 h-5"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="font-bold text-gray-500 text-xs uppercase tracking-wider">Rodada ${index + 1}</span>
+                                <span class="font-bold ${item.wasCorrect ? 'text-green-600' : 'text-red-600'}">
+                                    ${item.wasCorrect ? 'Acertou' : 'Errou'}
+                                </span>
+                            </div>
+                            
+                            <!-- O que foi perguntado implicitamente (O contexto correto) -->
+                            <p class="text-gray-800 font-medium mb-3">"${item.correctContext}"</p>
+
+                            <div class="flex items-center gap-2 bg-gray-50 p-2 rounded-lg border border-gray-100">
+                                <div class="w-8 h-8 rounded-md flex items-center justify-center text-white ${item.activity.color}">
+                                    <i data-lucide="${item.activity.icon}" class="w-4 h-4"></i>
+                                </div>
+                                <div class="flex flex-col">
+                                    <span class="text-xs text-gray-400 font-bold uppercase">Atividade Correta</span>
+                                    <span class="font-bold text-blue-900">${item.activity.type}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                list.appendChild(card);
+            });
+            lucide.createIcons();
+        }
+
+        // Iniciar
         initGame();
 
     </script>
