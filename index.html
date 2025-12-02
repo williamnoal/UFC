@@ -1,385 +1,330 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Design Instrucional: Moodle em Prática</title>
-    
-    <!-- Tailwind CSS (CDN) -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Fonte Inter (Opcional, para ficar bonito) -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+import React, { useState, useEffect } from 'react';
+import { DndProvider, useDrag, useDrop } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
+import { TouchBackend } from 'react-dnd-touch-backend';
+import { MessageSquare, FileText, CheckSquare, Book, Database, Edit, MessageCircle, BarChart2, RefreshCw, Trophy, Info, X } from 'lucide-react';
 
-    <style>
-        body { font-family: 'Inter', sans-serif; }
-        
-        /* Animações simples */
-        .fade-in { animation: fadeIn 0.3s ease-in-out; }
-        .slide-in { animation: slideIn 0.3s ease-out; }
-        
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        @keyframes slideIn { from { transform: translateY(10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+// --- DATA SOURCE BASED ON PDF ---
+const gameData = [
+  {
+    id: 1,
+    description: "Preciso que os alunos construam um texto único colaborativamente.",
+    hint: "A essência desta atividade é ser um documento colaborativo.",
+    correctType: "Wiki",
+    feedback: "Exato! A Wiki é ideal para construção coletiva de textos.",
+    color: "bg-blue-100 border-blue-500"
+  },
+  {
+    id: 2,
+    description: "Quero avaliar submissões individuais de arquivos ou textos online com feedback personalizado.",
+    hint: "Não permite colaboração direta entre estudantes.",
+    correctType: "Tarefa",
+    feedback: "Perfeito! A Tarefa é focada na entrega individual e feedback do professor.",
+    color: "bg-yellow-100 border-yellow-500"
+  },
+  {
+    id: 3,
+    description: "Preciso de uma avaliação automática para questões objetivas.",
+    hint: "A configuração é feita em etapas e permite feedback automático.",
+    correctType: "Questionário",
+    feedback: "Isso! Questionários são ótimos para correção automática.",
+    color: "bg-green-100 border-green-500"
+  },
+  {
+    id: 4,
+    description: "Quero criar um dicionário de conceitos construído pela turma.",
+    hint: "Permite compartilhamento de termos e verbetes.",
+    correctType: "Glossário",
+    feedback: "Correto! O Glossário permite construir uma base de conhecimento de termos juntos.",
+    color: "bg-purple-100 border-purple-500"
+  },
+  {
+    id: 5,
+    description: "Poderosa ferramenta para debates e discussões assíncronas.",
+    hint: "Os estudantes podem discutir um tema e o professor mediar.",
+    correctType: "Fórum",
+    feedback: "Excelente! O Fórum é a principal ferramenta de comunicação assíncrona.",
+    color: "bg-indigo-100 border-indigo-500"
+  },
+  {
+    id: 6,
+    description: "Compartilhamento de diversos tipos de dados (imagens, links, arquivos) pelos alunos.",
+    hint: "Funciona como um repositório ou galeria colaborativa.",
+    correctType: "Base de Dados",
+    feedback: "Muito bem! A Base de Dados é flexível para coletar diversos tipos de arquivos.",
+    color: "bg-red-100 border-red-500"
+  },
+  {
+    id: 7,
+    description: "Comunicação síncrona (tempo real) para tirar dúvidas rápidas.",
+    hint: "Não permite nota, o feedback é feito via conversa.",
+    correctType: "Chat",
+    feedback: "Certo! O Chat é ideal para interações imediatas.",
+    color: "bg-pink-100 border-pink-500"
+  },
+  {
+    id: 8,
+    description: "Coleta de dados para diagnóstico sem atribuir nota.",
+    hint: "Não divulga informação, apenas coleta dados para análise.",
+    correctType: "Pesquisa",
+    feedback: "Isso mesmo! A Pesquisa é usada para levantamento de dados e opinião.",
+    color: "bg-orange-100 border-orange-500"
+  }
+];
 
-        /* Estilo para item arrastável */
-        .draggable-source { cursor: grab; }
-        .draggable-source:active { cursor: grabbing; }
-        .draggable-source.selected { border-color: #6366f1; background-color: #eef2ff; transform: scale(1.02); }
-    </style>
-</head>
-<body class="bg-slate-100 min-h-screen text-slate-800 p-4 md:p-8">
+const activityTypes = [
+  { name: "Fórum", icon: <MessageSquare size={24} />, color: "bg-indigo-500" },
+  { name: "Tarefa", icon: <FileText size={24} />, color: "bg-yellow-500" },
+  { name: "Questionário", icon: <CheckSquare size={24} />, color: "bg-green-600" },
+  { name: "Glossário", icon: <Book size={24} />, color: "bg-purple-500" },
+  { name: "Base de Dados", icon: <Database size={24} />, color: "bg-red-500" },
+  { name: "Wiki", icon: <Edit size={24} />, color: "bg-blue-500" },
+  { name: "Chat", icon: <MessageCircle size={24} />, color: "bg-pink-500" },
+  { name: "Pesquisa", icon: <BarChart2 size={24} />, color: "bg-orange-500" },
+];
 
-    <div class="max-w-6xl mx-auto">
+// --- COMPONENTS ---
+
+const DraggableItem = ({ name, icon, color }) => {
+  const [{ isDragging }, drag] = useDrag(() => ({
+    type: 'ACTIVITY',
+    item: { name },
+    collect: (monitor) => ({
+      isDragging: !!monitor.isDragging(),
+    }),
+  }));
+
+  return (
+    <div
+      ref={drag}
+      className={`flex flex-col items-center justify-center p-3 m-2 rounded-xl shadow-md cursor-grab transition-transform transform hover:scale-105 active:cursor-grabbing ${color} text-white w-24 h-24 sm:w-28 sm:h-28 opacity-${isDragging ? '50' : '100'}`}
+    >
+      <div className="mb-2 drop-shadow-md">{icon}</div>
+      <span className="text-xs sm:text-sm font-bold text-center leading-tight">{name}</span>
+    </div>
+  );
+};
+
+const DropZone = ({ onDrop, currentCard, feedbackState }) => {
+  const [{ isOver }, drop] = useDrop(() => ({
+    accept: 'ACTIVITY',
+    drop: (item) => onDrop(item.name),
+    collect: (monitor) => ({
+      isOver: !!monitor.isOver(),
+    }),
+  }));
+
+  let borderColor = isOver ? 'border-blue-400 bg-blue-50' : 'border-dashed border-gray-300 bg-gray-50';
+  let content = <span className="text-gray-400 text-lg font-medium animate-pulse">Arraste a atividade correta aqui</span>;
+
+  if (feedbackState === 'correct') {
+    borderColor = 'border-green-500 bg-green-50 scale-105';
+    content = (
+      <div className="flex flex-col items-center text-green-600 animate-bounce">
+        <CheckSquare size={48} />
+        <span className="text-xl font-bold mt-2">Correto!</span>
+      </div>
+    );
+  } else if (feedbackState === 'incorrect') {
+    borderColor = 'border-red-500 bg-red-50 shake';
+    content = (
+      <div className="flex flex-col items-center text-red-600">
+        <X size={48} />
+        <span className="text-xl font-bold mt-2">Tente Novamente</span>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      ref={drop}
+      className={`w-full h-48 sm:h-64 rounded-2xl border-4 flex items-center justify-center transition-all duration-300 ${borderColor}`}
+    >
+      {content}
+    </div>
+  );
+};
+
+// --- MAIN GAME COMPONENT ---
+
+export default function MoodleMatchGame() {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [score, setScore] = useState(0);
+  const [feedbackState, setFeedbackState] = useState('idle'); // idle, correct, incorrect
+  const [feedbackMessage, setFeedbackMessage] = useState('');
+  const [showHint, setShowHint] = useState(false);
+  const [isGameOver, setIsGameOver] = useState(false);
+  const [shuffledCards, setShuffledCards] = useState([]);
+  
+  // Detect touch device for backend selection
+  const isTouchDevice = () => {
+    return (('ontouchstart' in window) ||
+      (navigator.maxTouchPoints > 0) ||
+      (navigator.msMaxTouchPoints > 0));
+  };
+
+  const backend = isTouchDevice() ? TouchBackend : HTML5Backend;
+
+  useEffect(() => {
+    restartGame();
+  }, []);
+
+  const restartGame = () => {
+    const shuffled = [...gameData].sort(() => Math.random() - 0.5);
+    setShuffledCards(shuffled);
+    setCurrentIndex(0);
+    setScore(0);
+    setFeedbackState('idle');
+    setFeedbackMessage('');
+    setShowHint(false);
+    setIsGameOver(false);
+  };
+
+  const handleDrop = (droppedName) => {
+    if (feedbackState === 'correct') return;
+
+    const currentCard = shuffledCards[currentIndex];
+
+    if (droppedName === currentCard.correctType) {
+      setFeedbackState('correct');
+      setFeedbackMessage(currentCard.feedback);
+      setScore(prev => prev + 10);
+      
+      setTimeout(() => {
+        if (currentIndex < shuffledCards.length - 1) {
+          setCurrentIndex(prev => prev + 1);
+          setFeedbackState('idle');
+          setFeedbackMessage('');
+          setShowHint(false);
+        } else {
+          setIsGameOver(true);
+        }
+      }, 2000);
+    } else {
+      setFeedbackState('incorrect');
+      setFeedbackMessage("Ops! Essa não é a atividade ideal para este objetivo. Tente outra!");
+      setScore(prev => Math.max(0, prev - 2));
+      setTimeout(() => setFeedbackState('idle'), 1500);
+    }
+  };
+
+  if (shuffledCards.length === 0) return null;
+
+  const currentCard = shuffledCards[currentIndex];
+
+  return (
+    <DndProvider backend={backend} options={{ enableMouseEvents: true }}>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-white font-sans text-gray-800 p-4 sm:p-6 flex flex-col items-center">
         
-        <!-- Header -->
-        <header class="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
-            <div>
-                <h1 class="text-2xl md:text-3xl font-bold text-slate-900 mb-2">Design Instrucional no Moodle</h1>
-                <p class="text-slate-600 max-w-2xl text-sm md:text-base">
-                    Associe cada ferramenta à sua etapa na Trilha Formativa.
-                    Escolha pela <span class="font-semibold text-indigo-600">intencionalidade pedagógica</span>.
-                    <br><span class="text-xs text-slate-400 mt-1 block">(Arraste o card ou clique para selecionar e depois clique na zona de destino)</span>
-                </p>
+        {/* Header - UFC Identity */}
+        <header className="w-full max-w-4xl flex justify-between items-center mb-6 bg-white p-4 rounded-xl shadow-sm border-l-8 border-yellow-400">
+          <div className="flex flex-col">
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-blue-900 tracking-tight">MOODLE MATCH</h1>
+            <p className="text-xs sm:text-sm text-gray-500 uppercase tracking-widest">Atividades e Objetivos Educacionais</p>
+          </div>
+          <div className="flex items-center space-x-4">
+            <div className="text-right hidden sm:block">
+              <span className="block text-xs text-gray-400">PONTUAÇÃO</span>
+              <span className="text-2xl font-bold text-blue-600">{score}</span>
             </div>
-            <div class="flex items-center gap-4 bg-white px-4 py-2 rounded-lg shadow-sm">
-                <div class="text-right">
-                    <p class="text-xs text-slate-400 uppercase tracking-wide">Pontuação</p>
-                    <p class="text-xl font-bold text-indigo-600" id="score-display">0</p>
-                </div>
-                <button onclick="game.reset()" class="p-2 hover:bg-slate-100 rounded-full transition-colors" title="Reiniciar Jogo">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-slate-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
-                </button>
+            <div className="bg-blue-100 p-2 rounded-full">
+              <Trophy className="text-blue-600" size={24} />
             </div>
+          </div>
         </header>
 
-        <!-- Feedback Toast (Hidden by default) -->
-        <div id="toast" class="fixed top-6 right-6 z-50 px-6 py-3 rounded-lg shadow-lg text-white font-medium flex items-center gap-2 hidden transition-all duration-300 transform translate-x-full">
-            <span id="toast-icon"></span>
-            <span id="toast-message"></span>
-        </div>
-
-        <!-- Grid Layout -->
-        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        {isGameOver ? (
+          <div className="w-full max-w-2xl bg-white rounded-3xl shadow-xl p-8 text-center animate-fade-in-up">
+            <div className="w-24 h-24 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Trophy className="text-yellow-500 w-12 h-12" />
+            </div>
+            <h2 className="text-3xl font-bold text-gray-800 mb-2">Parabéns!</h2>
+            <p className="text-gray-600 mb-6">Você completou o ciclo de formação continuada do jogo.</p>
+            <div className="text-5xl font-bold text-blue-600 mb-8">{score} <span className="text-xl text-gray-400 font-normal">pontos</span></div>
+            <button 
+              onClick={restartGame}
+              className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full font-bold shadow-lg transition-transform transform hover:scale-105 flex items-center mx-auto"
+            >
+              <RefreshCw className="mr-2" size={20} /> Jogar Novamente
+            </button>
+          </div>
+        ) : (
+          <div className="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-12 gap-6">
             
-            <!-- Sidebar: Items -->
-            <div class="lg:col-span-1">
-                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 sticky top-4">
-                    <h3 class="font-bold text-slate-700 mb-4 flex items-center gap-2 text-sm uppercase tracking-wide">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg>
-                        Recursos Disponíveis
-                    </h3>
-                    
-                    <div id="items-container" class="flex flex-col gap-2 min-h-[100px]">
-                        <!-- Items will be injected here -->
-                    </div>
-                    
-                    <div id="empty-state-sidebar" class="hidden text-center py-8 text-slate-400 text-sm">
-                        Todas as ferramentas alocadas!
-                    </div>
+            {/* Left Column: Challenge Card */}
+            <div className="lg:col-span-7 flex flex-col space-y-4">
+              
+              {/* Progress Bar */}
+              <div className="w-full bg-gray-200 rounded-full h-2.5 mb-2">
+                <div 
+                  className="bg-blue-600 h-2.5 rounded-full transition-all duration-500" 
+                  style={{ width: `${((currentIndex) / shuffledCards.length) * 100}%` }}
+                ></div>
+              </div>
+
+              {/* Card */}
+              <div className={`relative bg-white rounded-3xl shadow-xl border-2 p-6 sm:p-10 flex flex-col items-center text-center justify-between min-h-[300px] transition-colors duration-300 ${feedbackState === 'correct' ? 'border-green-400 bg-green-50' : 'border-blue-100'}`}>
+                
+                <div className="absolute top-4 right-4 text-xs font-bold text-gray-300">
+                  {currentIndex + 1} / {shuffledCards.length}
                 </div>
+
+                <div className="mb-4">
+                   <h3 className="text-gray-400 text-sm font-bold uppercase tracking-wider mb-2">Objetivo Pedagógico</h3>
+                   <p className="text-xl sm:text-2xl font-bold text-gray-800 leading-relaxed">
+                     "{currentCard.description}"
+                   </p>
+                </div>
+
+                <DropZone onDrop={handleDrop} currentCard={currentCard} feedbackState={feedbackState} />
+
+                {/* Feedback Text Area */}
+                <div className="h-16 mt-4 flex items-center justify-center w-full">
+                   {feedbackMessage ? (
+                     <p className={`text-center font-medium ${feedbackState === 'correct' ? 'text-green-700' : 'text-red-500'}`}>
+                       {feedbackMessage}
+                     </p>
+                   ) : (
+                     !showHint && (
+                        <button 
+                          onClick={() => { setShowHint(true); setScore(prev => Math.max(0, prev - 5)); }}
+                          className="text-sm text-blue-400 hover:text-blue-600 flex items-center transition-colors"
+                        >
+                          <Info size={16} className="mr-1" /> Precisa de uma dica? (-5 pts)
+                        </button>
+                     )
+                   )}
+                   {showHint && !feedbackMessage && (
+                     <p className="text-sm text-yellow-600 bg-yellow-50 px-3 py-1 rounded-lg border border-yellow-200 animate-fade-in">
+                       💡 Dica: {currentCard.hint}
+                     </p>
+                   )}
+                </div>
+              </div>
             </div>
 
-            <!-- Main Area: Zones -->
-            <div class="lg:col-span-3">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 h-full" id="zones-container">
-                    <!-- Zones will be injected here -->
-                </div>
+            {/* Right Column: Draggable Items */}
+            <div className="lg:col-span-5 bg-white rounded-3xl shadow-lg border border-gray-100 p-4 sm:p-6">
+              <h3 className="text-center text-gray-500 font-bold mb-4 uppercase text-sm">Arraste a Atividade</h3>
+              <div className="flex flex-wrap justify-center content-start">
+                {activityTypes.map((activity) => (
+                  <DraggableItem 
+                    key={activity.name} 
+                    name={activity.name} 
+                    icon={activity.icon} 
+                    color={activity.color} 
+                  />
+                ))}
+              </div>
             </div>
 
-        </div>
-
-        <!-- Completion Modal -->
-        <div id="modal-overlay" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden items-center justify-center z-50 p-4 transition-opacity">
-            <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-8 text-center transform scale-95 transition-transform" id="modal-content">
-                <div class="w-20 h-20 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-10 h-10 text-yellow-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
-                </div>
-                <h2 class="text-3xl font-bold text-slate-900 mb-2">Trilha Concluída!</h2>
-                <p class="text-slate-600 mb-6">
-                    Você estruturou uma trilha formativa coerente, movendo o aluno da imersão à síntese com as ferramentas corretas.
-                </p>
-                
-                <div class="bg-slate-50 rounded-lg p-4 mb-8 text-left text-sm text-slate-700 border border-slate-200">
-                    <p class="font-semibold mb-2">Resumo da Estratégia:</p>
-                    <ul class="space-y-1 list-disc list-inside">
-                        <li><span class="font-semibold text-indigo-600">Página/Livro</span> para leitura (Imersão).</li>
-                        <li><span class="font-semibold text-indigo-600">Questionário/H5P</span> para teste rápido (Prática).</li>
-                        <li><span class="font-semibold text-indigo-600">Fórum</span> para debate crítico (Colaboração).</li>
-                        <li><span class="font-semibold text-indigo-600">Tarefa</span> para aplicação final (Síntese).</li>
-                    </ul>
-                </div>
-
-                <button onclick="game.reset()" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg transition-colors">
-                    Jogar Novamente
-                </button>
-            </div>
-        </div>
-
-    </div>
-
-    <!-- Game Logic -->
-    <script>
-        // Icons (SVG strings)
-        const Icons = {
-            book: '<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 1-4 4v14a3 3 0 0 0 3-3h7z"/></svg>',
-            check: '<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>',
-            users: '<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
-            file: '<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>',
-            arrowRight: '<svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>',
-            checkSm: '<svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-green-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
-            xCircle: '<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>'
-        };
-
-        // Data
-        const initialItems = [
-            { id: 'item-1', title: 'Página e Livro', desc: 'Textos curtos e vídeos embutidos.', intent: 'Consumo com baixa fricção cognitiva.', zoneId: 'zone-1' },
-            { id: 'item-2', title: 'Questionário (Quiz)', desc: 'Verificação de memória e entendimento.', intent: 'Feedback automático e robustez avaliativa.', zoneId: 'zone-2' },
-            // H5P item removed here
-            { id: 'item-4', title: 'Fórum', desc: 'Debate de estudos de caso complexos.', intent: 'Pensamento crítico e troca social.', zoneId: 'zone-3' },
-            { id: 'item-5', title: 'Glossário', desc: 'Definições construídas coletivamente.', intent: 'Aluno produtor e colaboração.', zoneId: 'zone-3' },
-            { id: 'item-6', title: 'Tarefa', desc: 'Envio de projeto, ensaio ou vídeo final.', intent: 'Criação, síntese e aplicação.', zoneId: 'zone-4' },
-            { id: 'item-7', title: 'Laboratório de Avaliação', desc: 'Correção de trabalhos pelos pares.', intent: 'Autonomia e crítica em turmas massivas.', zoneId: 'zone-4' }
-        ];
-
-        const zonesConfig = [
-            { id: 'zone-1', title: '1. Imersão & Consumo', subtitle: 'O Início da Trilha', icon: Icons.book, color: 'bg-blue-50 border-blue-200 text-blue-800' },
-            { id: 'zone-2', title: '2. Prática & Fixação', subtitle: 'O Meio da Trilha', icon: Icons.check, color: 'bg-green-50 border-green-200 text-green-800' },
-            { id: 'zone-3', title: '3. Colaboração & Troca', subtitle: 'A Conexão Social', icon: Icons.users, color: 'bg-purple-50 border-purple-200 text-purple-800' },
-            { id: 'zone-4', title: '4. Síntese & Entrega', subtitle: 'O Fim da Trilha', icon: Icons.file, color: 'bg-orange-50 border-orange-200 text-orange-800' }
-        ];
-
-        class Game {
-            constructor() {
-                this.items = [];
-                this.placedItems = { 'zone-1': [], 'zone-2': [], 'zone-3': [], 'zone-4': [] };
-                this.score = 0;
-                this.selectedItem = null; // For click-to-select logic
-                
-                this.dom = {
-                    itemsContainer: document.getElementById('items-container'),
-                    zonesContainer: document.getElementById('zones-container'),
-                    scoreDisplay: document.getElementById('score-display'),
-                    emptyState: document.getElementById('empty-state-sidebar'),
-                    toast: document.getElementById('toast'),
-                    toastMsg: document.getElementById('toast-message'),
-                    toastIcon: document.getElementById('toast-icon'),
-                    modalOverlay: document.getElementById('modal-overlay'),
-                    modalContent: document.getElementById('modal-content')
-                };
-
-                this.init();
-            }
-
-            init() {
-                this.reset();
-            }
-
-            reset() {
-                this.items = [...initialItems].sort(() => Math.random() - 0.5);
-                this.placedItems = { 'zone-1': [], 'zone-2': [], 'zone-3': [], 'zone-4': [] };
-                this.score = 0;
-                this.selectedItem = null;
-                
-                this.hideModal();
-                this.render();
-            }
-
-            // --- Logic ---
-
-            attemptDrop(itemId, targetZoneId) {
-                const item = this.items.find(i => i.id === itemId);
-                if (!item) return;
-
-                if (item.zoneId === targetZoneId) {
-                    // Success
-                    this.items = this.items.filter(i => i.id !== itemId);
-                    this.placedItems[targetZoneId].push(item);
-                    this.score += 100;
-                    this.showToast(`Correto! ${item.title} encaixa aqui.`, 'success');
-                    
-                    if (this.items.length === 0) {
-                        setTimeout(() => this.showModal(), 1000);
-                    }
-                } else {
-                    // Fail
-                    this.score = Math.max(0, this.score - 20);
-                    this.showToast('Intencionalidade incorreta. Tente novamente.', 'error');
-                }
-                
-                this.selectedItem = null; // Reset selection
-                this.render();
-            }
-
-            selectItem(itemId) {
-                if (this.selectedItem === itemId) {
-                    this.selectedItem = null; // Deselect
-                } else {
-                    this.selectedItem = itemId;
-                }
-                this.render(); // Re-render to show selection border
-            }
-
-            // --- Rendering ---
-
-            render() {
-                this.dom.scoreDisplay.textContent = this.score;
-                this.renderItems();
-                this.renderZones();
-            }
-
-            renderItems() {
-                this.dom.itemsContainer.innerHTML = '';
-                
-                if (this.items.length === 0) {
-                    this.dom.emptyState.classList.remove('hidden');
-                } else {
-                    this.dom.emptyState.classList.add('hidden');
-                    this.items.forEach(item => {
-                        const el = document.createElement('div');
-                        const isSelected = this.selectedItem === item.id;
-                        
-                        el.className = `draggable-source bg-white p-3 mb-2 rounded-lg border shadow-sm transition-all hover:shadow-md group slide-in ${isSelected ? 'border-indigo-500 ring-2 ring-indigo-200 bg-indigo-50' : 'border-slate-200'}`;
-                        el.draggable = true;
-                        el.innerHTML = `
-                            <div class="flex items-center justify-between mb-1 pointer-events-none">
-                                <h4 class="font-semibold text-slate-800 text-sm">${item.title}</h4>
-                                <div class="bg-slate-100 p-1 rounded group-hover:bg-indigo-50 transition-colors">
-                                    <span class="text-slate-400 group-hover:text-indigo-500">${Icons.arrowRight}</span>
-                                </div>
-                            </div>
-                            <p class="text-xs text-slate-500 italic pointer-events-none">${item.desc}</p>
-                        `;
-
-                        // Drag Events
-                        el.addEventListener('dragstart', (e) => {
-                            e.dataTransfer.setData('text/plain', item.id);
-                            e.dataTransfer.effectAllowed = 'move';
-                            this.selectedItem = item.id; // Auto select on drag
-                        });
-
-                        // Click Event (for mobile/accessibility)
-                        el.addEventListener('click', () => this.selectItem(item.id));
-
-                        this.dom.itemsContainer.appendChild(el);
-                    });
-                }
-            }
-
-            renderZones() {
-                this.dom.zonesContainer.innerHTML = '';
-                
-                zonesConfig.forEach(zone => {
-                    const placedInThisZone = this.placedItems[zone.id];
-                    
-                    const zoneEl = document.createElement('div');
-                    // Add styles for when item is selected (visual cue)
-                    const activeClass = this.selectedItem ? 'cursor-pointer hover:border-indigo-400' : '';
-                    
-                    zoneEl.className = `flex flex-col h-full rounded-xl border-2 transition-all duration-300 bg-slate-50 border-slate-200 ${activeClass}`;
-                    
-                    zoneEl.innerHTML = `
-                        <div class="p-4 rounded-t-xl border-b ${zone.color} bg-opacity-50">
-                            <div class="flex items-center gap-2 mb-1">
-                                ${zone.icon}
-                                <h3 class="font-bold text-sm uppercase tracking-wider">${zone.title}</h3>
-                            </div>
-                            <p class="text-xs opacity-80">${zone.subtitle}</p>
-                        </div>
-                        <div class="flex-1 p-3 min-h-[140px] space-y-2 zone-body" data-zone-id="${zone.id}">
-                            ${placedInThisZone.length === 0 
-                                ? `<div class="h-full flex items-center justify-center text-slate-300 text-xs text-center px-4 pointer-events-none">Arraste aqui</div>` 
-                                : ''}
-                        </div>
-                    `;
-
-                    // Container for items inside the zone
-                    const bodyEl = zoneEl.querySelector('.zone-body');
-                    
-                    // Render placed items
-                    placedInThisZone.forEach(item => {
-                        const itemEl = document.createElement('div');
-                        itemEl.className = 'bg-white p-2 rounded border border-green-200 shadow-sm flex items-start gap-2 fade-in';
-                        itemEl.innerHTML = `
-                            <span class="mt-0.5 flex-shrink-0">${Icons.checkSm}</span>
-                            <div>
-                                <p class="text-xs font-bold text-slate-700">${item.title}</p>
-                                <p class="text-[10px] text-slate-500 leading-tight">${item.intent}</p>
-                            </div>
-                        `;
-                        bodyEl.appendChild(itemEl);
-                    });
-
-                    // Drop Events
-                    zoneEl.addEventListener('dragover', (e) => {
-                        e.preventDefault();
-                        e.dataTransfer.dropEffect = 'move';
-                        zoneEl.classList.add('border-indigo-300', 'bg-indigo-50');
-                    });
-                    
-                    zoneEl.addEventListener('dragleave', () => {
-                        zoneEl.classList.remove('border-indigo-300', 'bg-indigo-50');
-                    });
-
-                    zoneEl.addEventListener('drop', (e) => {
-                        e.preventDefault();
-                        zoneEl.classList.remove('border-indigo-300', 'bg-indigo-50');
-                        const itemId = e.dataTransfer.getData('text/plain');
-                        this.attemptDrop(itemId, zone.id);
-                    });
-
-                    // Click to Drop (if item selected)
-                    zoneEl.addEventListener('click', () => {
-                        if (this.selectedItem) {
-                            this.attemptDrop(this.selectedItem, zone.id);
-                        }
-                    });
-
-                    this.dom.zonesContainer.appendChild(zoneEl);
-                });
-            }
-
-            // --- UI Helpers ---
-
-            showToast(msg, type) {
-                const { toast, toastMsg, toastIcon } = this.dom;
-                
-                toast.classList.remove('hidden', 'translate-x-full', 'bg-green-600', 'bg-red-500');
-                
-                if (type === 'success') {
-                    toast.classList.add('bg-green-600');
-                    toastIcon.innerHTML = Icons.check;
-                } else {
-                    toast.classList.add('bg-red-500');
-                    toastIcon.innerHTML = Icons.xCircle;
-                }
-                
-                toastMsg.textContent = msg;
-                toast.classList.remove('hidden');
-                
-                // Trigger animation
-                setTimeout(() => toast.classList.remove('translate-x-full'), 10);
-
-                // Auto hide
-                setTimeout(() => {
-                    toast.classList.add('translate-x-full');
-                    setTimeout(() => toast.classList.add('hidden'), 300);
-                }, 2500);
-            }
-
-            showModal() {
-                this.dom.modalOverlay.classList.remove('hidden');
-                this.dom.modalOverlay.classList.add('flex');
-            }
-
-            hideModal() {
-                this.dom.modalOverlay.classList.add('hidden');
-                this.dom.modalOverlay.classList.remove('flex');
-            }
-        }
-
-        // Initialize Game
-        const game = new Game();
-
-    </script>
-</body>
-</html>
+          </div>
+        )}
+        
+        <footer className="mt-8 text-center text-gray-400 text-xs">
+          Baseado no material: "Atividades no Moodle e Seus Objetivos Educacionais" - UFC/SMED
+        </footer>
+      </div>
+    </DndProvider>
+  );
+}
